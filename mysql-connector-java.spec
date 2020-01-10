@@ -7,7 +7,7 @@
 Summary:    Official JDBC driver for MySQL
 Name:       mysql-connector-java
 Version:    5.1.25
-Release:    2%{?dist}
+Release:    3%{?dist}
 Epoch:      1 
 
 # MySQL FLOSS Exception
@@ -110,6 +110,9 @@ sed -i 's/>@.*</>%{version}</' $RPM_BUILD_ROOT%{_mavenpomdir}/JPP-%{name}.pom
 %{_mavenpomdir}/*.pom
 
 %changelog
+* Fri Dec 27 2013 Daniel Mach <dmach@redhat.com> - 1:5.1.25-3
+- Mass rebuild 2013-12-27
+
 * Mon Nov  4 2013 Honza Horak <hhorak@redhat.com> - 1:5.1.25-2
 - Remove versioned jars and some spec clean-up
   Resolves: #1023005
