@@ -1,26 +1,24 @@
 /*
- Copyright  2002-2004 MySQL AB, 2008 Sun Microsystems
- All rights reserved. Use is subject to license terms.
+ Copyright (c) 2002, 2010, Oracle and/or its affiliates. All rights reserved.
+ 
 
-  The MySQL Connector/J is licensed under the terms of the GPL,
-  like most MySQL Connectors. There are special exceptions to the
-  terms and conditions of the GPL as it is applied to this software,
-  see the FLOSS License Exception available on mysql.com.
+  The MySQL Connector/J is licensed under the terms of the GPLv2
+  <http://www.gnu.org/licenses/old-licenses/gpl-2.0.html>, like most MySQL Connectors.
+  There are special exceptions to the terms and conditions of the GPLv2 as it is applied to
+  this software, see the FLOSS License Exception
+  <http://www.mysql.com/about/legal/licensing/foss-exception.html>.
 
-  This program is free software; you can redistribute it and/or
-  modify it under the terms of the GNU General Public License as
-  published by the Free Software Foundation; version 2 of the
-  License.
+  This program is free software; you can redistribute it and/or modify it under the terms
+  of the GNU General Public License as published by the Free Software Foundation; version 2
+  of the License.
 
-  This program is distributed in the hope that it will be useful,  
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
+  This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+  without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  See the GNU General Public License for more details.
 
-  You should have received a copy of the GNU General Public License
-  along with this program; if not, write to the Free Software
-  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
-  02110-1301 USA
+  You should have received a copy of the GNU General Public License along with this
+  program; if not, write to the Free Software Foundation, Inc., 51 Franklin St, Fifth
+  Floor, Boston, MA 02110-1301  USA
 
 
 
@@ -77,33 +75,27 @@ public class CachedRowsetTest extends BaseTestCase {
 		}
 		populate = c.getMethod("populate", new Class[] { ResultSet.class });
 
-		try {
-			this.stmt.executeUpdate("DROP TABLE IF EXISTS testBug5188");
-			this.stmt.executeUpdate("CREATE TABLE testBug5188 "
-					+ "(ID int NOT NULL AUTO_INCREMENT, "
-					+ "datafield VARCHAR(64), " + "PRIMARY KEY(ID))");
+		createTable("testBug5188", "(ID int NOT NULL AUTO_INCREMENT, "
+				+ "datafield VARCHAR(64), " + "PRIMARY KEY(ID))");
 
-			this.stmt.executeUpdate("INSERT INTO testBug5188(datafield) "
-					+ "values('test data stuff !')");
+		this.stmt.executeUpdate("INSERT INTO testBug5188(datafield) "
+				+ "values('test data stuff !')");
 
-			String sql = "SELECT * FROM testBug5188 where ID = ?";
-			this.pstmt = this.conn.prepareStatement(sql);
-			this.pstmt.setString(1, "1");
-			this.rs = this.pstmt.executeQuery();
+		String sql = "SELECT * FROM testBug5188 where ID = ?";
+		this.pstmt = this.conn.prepareStatement(sql);
+		this.pstmt.setString(1, "1");
+		this.rs = this.pstmt.executeQuery();
 
-			// create a CachedRowSet and populate it
-			RowSet cachedRowSet = (RowSet) c.newInstance();
-			// cachedRowSet.populate(rs);
-			populate.invoke(cachedRowSet, new Object[] { this.rs });
+		// create a CachedRowSet and populate it
+		RowSet cachedRowSet = (RowSet) c.newInstance();
+		// cachedRowSet.populate(rs);
+		populate.invoke(cachedRowSet, new Object[] { this.rs });
 
-			// scroll through CachedRowSet ...
-			assertTrue(cachedRowSet.next());
-			assertEquals("1", cachedRowSet.getString("ID"));
-			assertEquals("test data stuff !", cachedRowSet
-					.getString("datafield"));
-			assertFalse(cachedRowSet.next());
-		} finally {
-			this.stmt.executeUpdate("DROP TABLE IF EXISTS testBug5188");
-		}
+		// scroll through CachedRowSet ...
+		assertTrue(cachedRowSet.next());
+		assertEquals("1", cachedRowSet.getString("ID"));
+		assertEquals("test data stuff !", cachedRowSet.getString("datafield"));
+		assertFalse(cachedRowSet.next());
+
 	}
 }

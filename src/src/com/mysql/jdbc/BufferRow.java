@@ -1,26 +1,24 @@
 /*
- Copyright  2007 MySQL AB, 2008 Sun Microsystems
- All rights reserved. Use is subject to license terms.
+ Copyright (c) 2007, 2010, Oracle and/or its affiliates. All rights reserved.
+ 
 
-  The MySQL Connector/J is licensed under the terms of the GPL,
-  like most MySQL Connectors. There are special exceptions to the
-  terms and conditions of the GPL as it is applied to this software,
-  see the FLOSS License Exception available on mysql.com.
+  The MySQL Connector/J is licensed under the terms of the GPLv2
+  <http://www.gnu.org/licenses/old-licenses/gpl-2.0.html>, like most MySQL Connectors.
+  There are special exceptions to the terms and conditions of the GPLv2 as it is applied to
+  this software, see the FLOSS License Exception
+  <http://www.mysql.com/about/legal/licensing/foss-exception.html>.
 
-  This program is free software; you can redistribute it and/or
-  modify it under the terms of the GNU General Public License as
-  published by the Free Software Foundation; version 2 of the
-  License.
+  This program is free software; you can redistribute it and/or modify it under the terms
+  of the GNU General Public License as published by the Free Software Foundation; version 2
+  of the License.
 
-  This program is distributed in the hope that it will be useful,  
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
+  This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+  without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  See the GNU General Public License for more details.
 
-  You should have received a copy of the GNU General Public License
-  along with this program; if not, write to the Free Software
-  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
-  02110-1301 USA
+  You should have received a copy of the GNU General Public License along with this
+  program; if not, write to the Free Software Foundation, Inc., 51 Franklin St, Fifth
+  Floor, Boston, MA 02110-1301  USA
  
  */
 package com.mysql.jdbc;
@@ -482,7 +480,7 @@ public class BufferRow extends ResultSetRow {
 
 	public Timestamp getNativeTimestamp(int columnIndex,
 			Calendar targetCalendar, TimeZone tz, boolean rollForward,
-			ConnectionImpl conn, ResultSetImpl rs) throws SQLException {
+			MySQLConnection conn, ResultSetImpl rs) throws SQLException {
 		if (isNull(columnIndex)) {
 			return null;
 		}
@@ -516,7 +514,7 @@ public class BufferRow extends ResultSetRow {
 		}
 	}
 
-	public String getString(int columnIndex, String encoding, ConnectionImpl conn)
+	public String getString(int columnIndex, String encoding, MySQLConnection conn)
 			throws SQLException {
 		if (this.isBinaryEncoded) {
 			if (isNull(columnIndex)) {
@@ -546,7 +544,7 @@ public class BufferRow extends ResultSetRow {
 	}
 
 	public Time getTimeFast(int columnIndex, Calendar targetCalendar,
-			TimeZone tz, boolean rollForward, ConnectionImpl conn,
+			TimeZone tz, boolean rollForward, MySQLConnection conn,
 			ResultSetImpl rs) throws SQLException {
 		if (isNull(columnIndex)) {
 			return null;
@@ -563,7 +561,7 @@ public class BufferRow extends ResultSetRow {
 	}
 
 	public Timestamp getTimestampFast(int columnIndex, Calendar targetCalendar,
-			TimeZone tz, boolean rollForward, ConnectionImpl conn,
+			TimeZone tz, boolean rollForward, MySQLConnection conn,
 			ResultSetImpl rs) throws SQLException {
 		if (isNull(columnIndex)) {
 			return null;
@@ -694,7 +692,7 @@ public class BufferRow extends ResultSetRow {
 		}
 	}
 
-	public Date getDateFast(int columnIndex, ConnectionImpl conn,
+	public Date getDateFast(int columnIndex, MySQLConnection conn,
 			ResultSetImpl rs, Calendar targetCalendar) throws SQLException {
 		if (isNull(columnIndex)) {
 			return null;
@@ -710,7 +708,7 @@ public class BufferRow extends ResultSetRow {
 				offset, (int)length, conn, rs, targetCalendar);
 	}
 
-	public java.sql.Date getNativeDate(int columnIndex, ConnectionImpl conn,
+	public java.sql.Date getNativeDate(int columnIndex, MySQLConnection conn,
 			ResultSetImpl rs, Calendar cal) throws SQLException {
 		if (isNull(columnIndex)) {
 			return null;
@@ -728,7 +726,7 @@ public class BufferRow extends ResultSetRow {
 
 	public Object getNativeDateTimeValue(int columnIndex, Calendar targetCalendar,
 			int jdbcType, int mysqlType, TimeZone tz,
-			boolean rollForward, ConnectionImpl conn, ResultSetImpl rs)
+			boolean rollForward, MySQLConnection conn, ResultSetImpl rs)
 			throws SQLException {
 		if (isNull(columnIndex)) {
 			return null;
@@ -746,7 +744,7 @@ public class BufferRow extends ResultSetRow {
 	}
 
 	public Time getNativeTime(int columnIndex, Calendar targetCalendar,
-			TimeZone tz, boolean rollForward, ConnectionImpl conn,
+			TimeZone tz, boolean rollForward, MySQLConnection conn,
 			ResultSetImpl rs) throws SQLException {
 		if (isNull(columnIndex)) {
 			return null;

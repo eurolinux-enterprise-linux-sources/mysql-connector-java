@@ -1,6 +1,6 @@
 /*
- Copyright  2002-2007 MySQL AB, 2008 Sun Microsystems
- All rights reserved. Use is subject to license terms.
+ Copyright (c) 2002, 2010, Oracle and/or its affiliates. All rights reserved.
+ 
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of version 2 of the GNU General Public License as
@@ -107,10 +107,18 @@ public class StatementsTest extends BaseTestCase {
 		this.stmt
 				.executeUpdate("CREATE TABLE statement_test (id int not null primary key auto_increment, strdata1 varchar(255) not null, strdata2 varchar(255))");
 
-		this.stmt.executeUpdate("CREATE TABLE statement_batch_test "
+		try {
+			this.stmt.executeUpdate("CREATE TABLE statement_batch_test "
 				+ "(id int not null primary key auto_increment, "
 				+ "strdata1 varchar(255) not null, strdata2 varchar(255), "
 				+ "UNIQUE INDEX (strdata1))");
+		} catch (SQLException sqlEx) {
+			if (sqlEx.getMessage().indexOf("max key length") != -1) {
+				createTable("statement_batch_test", "(id int not null primary key auto_increment, "
+						+ "strdata1 varchar(175) not null, strdata2 varchar(175), "
+						+ "UNIQUE INDEX (strdata1))");
+			}
+		}
 
 		for (int i = 6; i < MAX_COLUMNS_TO_TEST; i += STEP) {
 			this.stmt.executeUpdate("DROP TABLE IF EXISTS statement_col_test_"
@@ -171,22 +179,24 @@ public class StatementsTest extends BaseTestCase {
 	 *             DOCUMENT ME!
 	 */
 	public void tearDown() throws Exception {
-		this.stmt.executeUpdate("DROP TABLE statement_test");
-
-		for (int i = 0; i < MAX_COLUMNS_TO_TEST; i += STEP) {
-			StringBuffer stmtBuf = new StringBuffer(
-					"DROP TABLE IF EXISTS statement_col_test_");
-			stmtBuf.append(i);
-			this.stmt.executeUpdate(stmtBuf.toString());
-		}
-
 		try {
-			this.stmt.executeUpdate("DROP TABLE statement_batch_test");
-		} catch (SQLException sqlEx) {
-			;
+			this.stmt.executeUpdate("DROP TABLE statement_test");
+	
+			for (int i = 6; i < MAX_COLUMNS_TO_TEST; i += STEP) {
+				StringBuffer stmtBuf = new StringBuffer(
+						"DROP TABLE IF EXISTS statement_col_test_");
+				stmtBuf.append(i);
+				this.stmt.executeUpdate(stmtBuf.toString());
+			}
+	
+			try {
+				this.stmt.executeUpdate("DROP TABLE statement_batch_test");
+			} catch (SQLException sqlEx) {
+				;
+			}
+		} finally {
+			super.tearDown();
 		}
-
-		super.tearDown();
 	}
 
 	/**
@@ -779,6 +789,20 @@ public class StatementsTest extends BaseTestCase {
 					// expected
 				}
 				
+				int count = 1000;
+				
+				for (; count > 0; count--) {
+					if (forceCancel.isClosed()) {
+						break;
+					}
+					
+					Thread.sleep(100);
+				}
+				
+				if (count == 0) {
+					fail("Connection was never killed");
+				}
+				
 				try {
 					forceCancel.setAutoCommit(true); // should fail too
 				} catch (SQLException sqlEx) {
@@ -1273,8 +1297,7 @@ public class StatementsTest extends BaseTestCase {
 		props.put("noDatetimeStringSync", "true"); // value=true for #5
 		Connection conn1 = getConnectionWithProps(props);
 		Statement stmt1 = conn1.createStatement();
-		stmt1.executeUpdate("DROP TABLE IF EXISTS t1");
-		stmt1.executeUpdate("CREATE TABLE t1 (" + "c1 DECIMAL," // instance of
+		createTable("t1", " (" + "c1 DECIMAL," // instance of
 																// String
 				+ "c2 VARCHAR(255)," // instance of String
 				+ "c3 BLOB," // instance of byte[]
@@ -1577,7 +1600,7 @@ public class StatementsTest extends BaseTestCase {
 	}
 	
 	public void testBatchRewriteErrors() throws Exception {
-		createTable("rewriteErrors", "(field1 int not null primary key)");
+		createTable("rewriteErrors", "(field1 int not null primary key) ENGINE=MyISAM");
 
 		Properties props = new Properties();
 		Connection multiConn = null;
@@ -1591,7 +1614,7 @@ public class StatementsTest extends BaseTestCase {
 				props.setProperty("continueBatchOnError", "true");
 			}
 			
-			props.setProperty("maxAllowedPacket", "1024");
+			props.setProperty("maxAllowedPacket", "4096");
 			props.setProperty("rewriteBatchedStatements", "true");
 			multiConn = getConnectionWithProps(props);
 			this.pstmt = multiConn.prepareStatement("INSERT INTO rewriteErrors VALUES (?)");
@@ -1885,8 +1908,6 @@ public class StatementsTest extends BaseTestCase {
 			interceptedConn = getConnectionWithProps(props);
 			this.rs = interceptedConn.createStatement().executeQuery("SELECT 'abc'");
 		} finally {
-			closeMemberJDBCResources();
-
 			if (interceptedConn != null) {
 				interceptedConn.close();
 			}
@@ -1962,7 +1983,6 @@ public class StatementsTest extends BaseTestCase {
             assertEquals("ijkl", this.rs.getString(1));
 	    } finally {
 	        ((com.mysql.jdbc.Statement) this.stmt).setLocalInfileInputStream(null);
-	        closeMemberJDBCResources();
 	    }
 	}
 }

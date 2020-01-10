@@ -1,26 +1,24 @@
 /*
- Copyright  2002-2007 MySQL AB, 2008 Sun Microsystems
- All rights reserved. Use is subject to license terms.
+ Copyright (c) 2002, 2010, Oracle and/or its affiliates. All rights reserved.
+ 
 
-  The MySQL Connector/J is licensed under the terms of the GPL,
-  like most MySQL Connectors. There are special exceptions to the
-  terms and conditions of the GPL as it is applied to this software,
-  see the FLOSS License Exception available on mysql.com.
+  The MySQL Connector/J is licensed under the terms of the GPLv2
+  <http://www.gnu.org/licenses/old-licenses/gpl-2.0.html>, like most MySQL Connectors.
+  There are special exceptions to the terms and conditions of the GPLv2 as it is applied to
+  this software, see the FLOSS License Exception
+  <http://www.mysql.com/about/legal/licensing/foss-exception.html>.
 
-  This program is free software; you can redistribute it and/or
-  modify it under the terms of the GNU General Public License as
-  published by the Free Software Foundation; version 2 of the
-  License.
+  This program is free software; you can redistribute it and/or modify it under the terms
+  of the GNU General Public License as published by the Free Software Foundation; version 2
+  of the License.
 
-  This program is distributed in the hope that it will be useful,  
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
+  This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+  without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  See the GNU General Public License for more details.
 
-  You should have received a copy of the GNU General Public License
-  along with this program; if not, write to the Free Software
-  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
-  02110-1301 USA
+  You should have received a copy of the GNU General Public License along with this
+  program; if not, write to the Free Software Foundation, Inc., 51 Franklin St, Fifth
+  Floor, Boston, MA 02110-1301  USA
 
  */
 
@@ -41,16 +39,16 @@ import com.mysql.jdbc.PreparedStatement.ParseInfo;
 
 public class JDBC4PreparedStatement extends PreparedStatement {
 
-	public JDBC4PreparedStatement(ConnectionImpl conn, String catalog) throws SQLException {
+	public JDBC4PreparedStatement(MySQLConnection conn, String catalog) throws SQLException {
 		super(conn, catalog);
 	}
 	
-	public JDBC4PreparedStatement(ConnectionImpl conn, String sql, String catalog)
+	public JDBC4PreparedStatement(MySQLConnection conn, String sql, String catalog)
 		throws SQLException {
 		super(conn, sql, catalog);
 	}
 	
-	public JDBC4PreparedStatement(ConnectionImpl conn, String sql, String catalog,
+	public JDBC4PreparedStatement(MySQLConnection conn, String sql, String catalog,
 			ParseInfo cachedParseInfo) throws SQLException {
 		super(conn, sql, catalog, cachedParseInfo);
 	}

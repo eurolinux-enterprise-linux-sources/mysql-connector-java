@@ -1,26 +1,23 @@
 /*
- Copyright  2002-2007 MySQL AB, 2008 Sun Microsystems
- All rights reserved. Use is subject to license terms.
+  Copyright (c) 2002, 2011, Oracle and/or its affiliates. All rights reserved.
 
-  The MySQL Connector/J is licensed under the terms of the GPL,
-  like most MySQL Connectors. There are special exceptions to the
-  terms and conditions of the GPL as it is applied to this software,
-  see the FLOSS License Exception available on mysql.com.
+  The MySQL Connector/J is licensed under the terms of the GPLv2
+  <http://www.gnu.org/licenses/old-licenses/gpl-2.0.html>, like most MySQL Connectors.
+  There are special exceptions to the terms and conditions of the GPLv2 as it is applied to
+  this software, see the FLOSS License Exception
+  <http://www.mysql.com/about/legal/licensing/foss-exception.html>.
 
-  This program is free software; you can redistribute it and/or
-  modify it under the terms of the GNU General Public License as
-  published by the Free Software Foundation; version 2 of the
-  License.
+  This program is free software; you can redistribute it and/or modify it under the terms
+  of the GNU General Public License as published by the Free Software Foundation; version 2
+  of the License.
 
-  This program is distributed in the hope that it will be useful,  
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
+  This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+  without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  See the GNU General Public License for more details.
 
-  You should have received a copy of the GNU General Public License
-  along with this program; if not, write to the Free Software
-  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
-  02110-1301 USA
+  You should have received a copy of the GNU General Public License along with this
+  program; if not, write to the Free Software Foundation, Inc., 51 Franklin St, Fifth
+  Floor, Boston, MA 02110-1301  USA
 
 
 
@@ -194,9 +191,11 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
 
 			boolean isUnsigned = false;
 			
-			if (StringUtils.indexOfIgnoreCase(typeInfo, "unsigned") != -1) {
-				fullMysqlType = mysqlType + " unsigned";
-				isUnsigned = true;
+			if ((StringUtils.indexOfIgnoreCase(typeInfo, "unsigned") != -1) && 
+				(StringUtils.indexOfIgnoreCase(typeInfo, "set") != 0) &&
+				(StringUtils.indexOfIgnoreCase(typeInfo, "enum") != 0)) {
+					fullMysqlType = mysqlType + " unsigned";
+					isUnsigned = true;
 			} else {
 				fullMysqlType = mysqlType;
 			}
@@ -223,7 +222,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
 							.length() - 2));
 				}
 
-				this.columnSize = Constants.integerValueOf(maxLength);
+				this.columnSize = Integer.valueOf(maxLength);
 				this.decimalDigits = null;
 			} else if (StringUtils.startsWithIgnoreCase(typeInfo, "set")) {
 				String temp = typeInfo.substring(typeInfo.indexOf("(") + 1,
@@ -249,7 +248,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
 					}
 				}
 
-				this.columnSize = Constants.integerValueOf(maxLength);
+				this.columnSize = Integer.valueOf(maxLength);
 				this.decimalDigits = null;
 			} else if (typeInfo.indexOf(",") != -1) {
 				// Numeric with decimals
@@ -303,97 +302,97 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
 							this.typeName = "BIT";
 						}
 					} else {
-						this.columnSize = Constants.integerValueOf(3);
-						this.decimalDigits = Constants.integerValueOf(0);
+						this.columnSize = Integer.valueOf(3);
+						this.decimalDigits = Integer.valueOf(0);
 					}
 				} else if (StringUtils.startsWithIgnoreCaseAndWs(typeInfo,
 						"smallint")) {
-					this.columnSize = Constants.integerValueOf(5);
-					this.decimalDigits = Constants.integerValueOf(0);
+					this.columnSize = Integer.valueOf(5);
+					this.decimalDigits = Integer.valueOf(0);
 				} else if (StringUtils.startsWithIgnoreCaseAndWs(typeInfo,
 						"mediumint")) {
-					this.columnSize = Constants.integerValueOf(isUnsigned ? 8 : 7);
-					this.decimalDigits = Constants.integerValueOf(0);
+					this.columnSize = Integer.valueOf(isUnsigned ? 8 : 7);
+					this.decimalDigits = Integer.valueOf(0);
 				} else if (StringUtils.startsWithIgnoreCaseAndWs(typeInfo,
 						"int")) {
-					this.columnSize = Constants.integerValueOf(10);
-					this.decimalDigits = Constants.integerValueOf(0);
+					this.columnSize = Integer.valueOf(10);
+					this.decimalDigits = Integer.valueOf(0);
 				} else if (StringUtils.startsWithIgnoreCaseAndWs(typeInfo,
 						"integer")) {
-					this.columnSize = Constants.integerValueOf(10);
-					this.decimalDigits = Constants.integerValueOf(0);
+					this.columnSize = Integer.valueOf(10);
+					this.decimalDigits = Integer.valueOf(0);
 				} else if (StringUtils.startsWithIgnoreCaseAndWs(typeInfo,
 						"bigint")) {
-					this.columnSize = Constants.integerValueOf(isUnsigned ? 20 : 19);
-					this.decimalDigits = Constants.integerValueOf(0);
+					this.columnSize = Integer.valueOf(isUnsigned ? 20 : 19);
+					this.decimalDigits = Integer.valueOf(0);
 				} else if (StringUtils.startsWithIgnoreCaseAndWs(typeInfo,
 						"int24")) {
-					this.columnSize = Constants.integerValueOf(19);
-					this.decimalDigits = Constants.integerValueOf(0);
+					this.columnSize = Integer.valueOf(19);
+					this.decimalDigits = Integer.valueOf(0);
 				} else if (StringUtils.startsWithIgnoreCaseAndWs(typeInfo,
 						"real")) {
-					this.columnSize = Constants.integerValueOf(12);
+					this.columnSize = Integer.valueOf(12);
 				} else if (StringUtils.startsWithIgnoreCaseAndWs(typeInfo,
 						"float")) {
-					this.columnSize = Constants.integerValueOf(12);
+					this.columnSize = Integer.valueOf(12);
 				} else if (StringUtils.startsWithIgnoreCaseAndWs(typeInfo,
 						"decimal")) {
-					this.columnSize = Constants.integerValueOf(12);
+					this.columnSize = Integer.valueOf(12);
 				} else if (StringUtils.startsWithIgnoreCaseAndWs(typeInfo,
 						"numeric")) {
-					this.columnSize = Constants.integerValueOf(12);
+					this.columnSize = Integer.valueOf(12);
 				} else if (StringUtils.startsWithIgnoreCaseAndWs(typeInfo,
 						"double")) {
-					this.columnSize = Constants.integerValueOf(22);
+					this.columnSize = Integer.valueOf(22);
 				} else if (StringUtils.startsWithIgnoreCaseAndWs(typeInfo,
 						"char")) {
-					this.columnSize = Constants.integerValueOf(1);
+					this.columnSize = Integer.valueOf(1);
 				} else if (StringUtils.startsWithIgnoreCaseAndWs(typeInfo,
 						"varchar")) {
-					this.columnSize = Constants.integerValueOf(255);
+					this.columnSize = Integer.valueOf(255);
 				} else if (StringUtils.startsWithIgnoreCaseAndWs(typeInfo,
 					"timestamp")) {
-					this.columnSize = Constants.integerValueOf(19);
+					this.columnSize = Integer.valueOf(19);
 				} else if (StringUtils.startsWithIgnoreCaseAndWs(typeInfo,
 					"datetime")) {
-					this.columnSize = Constants.integerValueOf(19);
+					this.columnSize = Integer.valueOf(19);
 				} else if (StringUtils.startsWithIgnoreCaseAndWs(typeInfo,
 						"date")) {
-					this.columnSize = Constants.integerValueOf(10);
+					this.columnSize = Integer.valueOf(10);
 				} else if (StringUtils.startsWithIgnoreCaseAndWs(typeInfo,
 						"time")) {
-					this.columnSize = Constants.integerValueOf(8);
+					this.columnSize = Integer.valueOf(8);
 				
 				} else if (StringUtils.startsWithIgnoreCaseAndWs(typeInfo,
 						"tinyblob")) {
-					this.columnSize = Constants.integerValueOf(255);
+					this.columnSize = Integer.valueOf(255);
 				} else if (StringUtils.startsWithIgnoreCaseAndWs(typeInfo,
 						"blob")) {
-					this.columnSize = Constants.integerValueOf(65535);
+					this.columnSize = Integer.valueOf(65535);
 				} else if (StringUtils.startsWithIgnoreCaseAndWs(typeInfo,
 						"mediumblob")) {
-					this.columnSize = Constants.integerValueOf(16777215);
+					this.columnSize = Integer.valueOf(16777215);
 				} else if (StringUtils.startsWithIgnoreCaseAndWs(typeInfo,
 						"longblob")) {
-					this.columnSize = Constants.integerValueOf(Integer.MAX_VALUE);
+					this.columnSize = Integer.valueOf(Integer.MAX_VALUE);
 				} else if (StringUtils.startsWithIgnoreCaseAndWs(typeInfo,
 						"tinytext")) {
-					this.columnSize = Constants.integerValueOf(255);
+					this.columnSize = Integer.valueOf(255);
 				} else if (StringUtils.startsWithIgnoreCaseAndWs(typeInfo,
 						"text")) {
-					this.columnSize = Constants.integerValueOf(65535);
+					this.columnSize = Integer.valueOf(65535);
 				} else if (StringUtils.startsWithIgnoreCaseAndWs(typeInfo,
 						"mediumtext")) {
-					this.columnSize = Constants.integerValueOf(16777215);
+					this.columnSize = Integer.valueOf(16777215);
 				} else if (StringUtils.startsWithIgnoreCaseAndWs(typeInfo,
 						"longtext")) {
-					this.columnSize = Constants.integerValueOf(Integer.MAX_VALUE);
+					this.columnSize = Integer.valueOf(Integer.MAX_VALUE);
 				} else if (StringUtils.startsWithIgnoreCaseAndWs(typeInfo,
 						"enum")) {
-					this.columnSize = Constants.integerValueOf(255);
+					this.columnSize = Integer.valueOf(255);
 				} else if (StringUtils.startsWithIgnoreCaseAndWs(typeInfo,
 						"set")) {
-					this.columnSize = Constants.integerValueOf(255);
+					this.columnSize = Integer.valueOf(255);
 				}
 
 			}
@@ -476,12 +475,12 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
 			try {
 				JDBC_4_DBMD_SHOW_CTOR = Class.forName(
 						"com.mysql.jdbc.JDBC4DatabaseMetaData").getConstructor(
-						new Class[] { com.mysql.jdbc.ConnectionImpl.class,
+						new Class[] { com.mysql.jdbc.MySQLConnection.class,
 								String.class });
 				JDBC_4_DBMD_IS_CTOR = Class.forName(
 						"com.mysql.jdbc.JDBC4DatabaseMetaDataUsingInfoSchema")
 						.getConstructor(
-								new Class[] { com.mysql.jdbc.ConnectionImpl.class,
+								new Class[] { com.mysql.jdbc.MySQLConnection.class,
 										String.class });
 			} catch (SecurityException e) {
 				throw new RuntimeException(e);
@@ -495,7 +494,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
 			JDBC_4_DBMD_SHOW_CTOR = null;
 		}
 		
-		// Current as-of MySQL-5.1.16
+		// Current as-of MySQL-5.5.8
 		String[] allMySQLKeywords = new String[] { "ACCESSIBLE", "ADD", "ALL",
 				"ALTER", "ANALYZE", "AND", "AS", "ASC", "ASENSITIVE", "BEFORE",
 				"BETWEEN", "BIGINT", "BINARY", "BLOB", "BOTH", "BY", "CALL",
@@ -537,7 +536,12 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
 				"UNSIGNED", "UPDATE", "USAGE", "USE", "USING", "UTC_DATE",
 				"UTC_TIME", "UTC_TIMESTAMP", "VALUES", "VARBINARY", "VARCHAR",
 				"VARCHARACTER", "VARYING", "WHEN", "WHERE", "WHILE", "WITH",
-				"WRITE", "X509", "XOR", "YEAR_MONTH", "ZEROFILL" };
+				"WRITE", "X509", "XOR", "YEAR_MONTH", "ZEROFILL",
+		// adding for 5.5.8:
+				"GENERAL", "IGNORE_SERVER_IDS", "MASTER_HEARTBEAT_PERIOD",
+				"MAXVALUE", "RESIGNAL", "SIGNAL", "SLOW"
+		
+		};
 
 		String[] sql92Keywords = new String[] { "ABSOLUTE", "EXEC", "OVERLAPS",
 				"ACTION", "EXECUTE", "PAD", "ADA", "EXISTS", "PARTIAL", "ADD",
@@ -616,7 +620,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
 	}
 	
 	/** The connection to the database */
-	protected ConnectionImpl conn;
+	protected MySQLConnection conn;
 
 	/** The 'current' database name being used */
 	protected String database = null;
@@ -628,7 +632,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
 	// and JDBC4 runtimes, otherwise the class verifier complains...
 	
 	protected static DatabaseMetaData getInstance(
-			ConnectionImpl connToSet, String databaseToSet, boolean checkForInfoSchema)
+			MySQLConnection connToSet, String databaseToSet, boolean checkForInfoSchema)
 			throws SQLException {
 		if (!Util.isJdbc4()) {
 			if (checkForInfoSchema && connToSet != null 
@@ -662,7 +666,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
 	 * @param databaseToSet
 	 *            DOCUMENT ME!
 	 */
-	protected DatabaseMetaData(ConnectionImpl connToSet, String databaseToSet) {
+	protected DatabaseMetaData(MySQLConnection connToSet, String databaseToSet) {
 		this.conn = connToSet;
 		this.database = databaseToSet;
 		this.exceptionInterceptor = this.conn.getExceptionInterceptor();
@@ -707,7 +711,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
 	}
 	
 	static java.sql.ResultSet buildResultSet(com.mysql.jdbc.Field[] fields,
-			java.util.ArrayList rows, ConnectionImpl c) throws SQLException {
+			java.util.ArrayList rows, MySQLConnection c) throws SQLException {
 		int fieldsLength = fields.length;
 
 		for (int i = 0; i < fieldsLength; i++) {
@@ -832,13 +836,13 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
 	}
 
 	private ResultSetRow convertTypeDescriptorToProcedureRow(
-			byte[] procNameAsBytes, String paramName, boolean isOutParam,
+			byte[] procNameAsBytes, byte[] procCatAsBytes, String paramName, boolean isOutParam,
 			boolean isInParam, boolean isReturnParam, TypeDescriptor typeDesc,
 			boolean forGetFunctionColumns,
 			int ordinal)
 			throws SQLException {
 		byte[][] row = forGetFunctionColumns ? new byte[17][] : new byte[14][];
-		row[0] = null; // PROCEDURE_CAT
+		row[0] = procCatAsBytes; // PROCEDURE_CAT
 		row[1] = null; // PROCEDURE_SCHEM
 		row[2] = procNameAsBytes; // PROCEDURE/NAME
 		row[3] = s2b(paramName); // COLUMN_NAME
@@ -1177,7 +1181,10 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
 		try {
 			for (int i = 0; i < numTables; i++) {
 				String tableToExtract = (String) tableList.get(i);
-
+				if (tableToExtract.indexOf(quoteChar) > 0) {
+					tableToExtract = StringUtils.escapeQuote(tableToExtract, quoteChar);
+				}
+				
 				String query = new StringBuffer("SHOW CREATE TABLE ").append(
 						quoteChar).append(catalog).append(quoteChar)
 						.append(".").append(quoteChar).append(tableToExtract)
@@ -1493,20 +1500,13 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
 			}
 		}
 
-		byte[] procNameAsBytes = null;
-
-		try {
-			procNameAsBytes = procName.getBytes("UTF-8");
-		} catch (UnsupportedEncodingException ueEx) {
-			procNameAsBytes = s2b(procName);
-
-			// Set all fields to connection encoding
-		}
-
 		String quoteChar = getIdentifierQuoteString();
 
 		String parameterDef = null;
-	
+
+		byte[] procNameAsBytes = null;
+		byte[] procCatAsBytes = null;
+		
 		boolean isProcedureInAnsiMode = false;
 		String storageDefnDelims = null;
 		String storageDefnClosures = null;
@@ -1514,17 +1514,18 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
 		try {
 			paramRetrievalStmt = this.conn.getMetadataSafeStatement();
 			
+			String oldCatalog = this.conn.getCatalog();
 			if (this.conn.lowerCaseTableNames() && catalog != null 
-					&& catalog.length() != 0) {
+					&& catalog.length() != 0 && oldCatalog != null 
+					&& oldCatalog.length() != 0) {
 				// Workaround for bug in server wrt. to 
 				// SHOW CREATE PROCEDURE not respecting
 				// lower-case table names
 				
-				String oldCatalog = this.conn.getCatalog();
 				ResultSet rs = null;
 				
 				try {
-					this.conn.setCatalog(catalog);
+					this.conn.setCatalog(catalog.replaceAll(quoteChar, ""));
 					rs = paramRetrievalStmt.executeQuery("SELECT DATABASE()");
 					rs.next();
 					
@@ -1561,6 +1562,29 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
 				procName = procName.substring(dotIndex + 1);
 			} else {
 				dbName = catalog;
+			}
+
+			// Moved from above so that procName is *without* database as expected
+			// by the rest of code
+			// Removing QuoteChar to get output as it was before PROC_CAT fixes
+			String tmpProcName = procName;
+			tmpProcName = tmpProcName.replaceAll(quoteChar, "");
+			try {
+				procNameAsBytes = StringUtils.getBytes(tmpProcName, "UTF-8");
+			} catch (UnsupportedEncodingException ueEx) {
+				procNameAsBytes = s2b(tmpProcName);
+
+				// Set all fields to connection encoding
+			}
+
+			tmpProcName = dbName;
+			tmpProcName = tmpProcName.replaceAll(quoteChar, "");
+			try {
+				procCatAsBytes = StringUtils.getBytes(tmpProcName, "UTF-8");
+			} catch (UnsupportedEncodingException ueEx) {
+				procCatAsBytes = s2b(tmpProcName);
+
+				// Set all fields to connection encoding
 			}
 
 			StringBuffer procNameBuf = new StringBuffer();
@@ -1671,10 +1695,10 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
 
 					String returnsDefn = procedureDef.substring(declarationStart, endReturnsDef).trim();
 					TypeDescriptor returnDescriptor = new TypeDescriptor(
-							returnsDefn, null);
+							returnsDefn, "YES"); //null);
 
 					resultRows.add(convertTypeDescriptorToProcedureRow(
-							procNameAsBytes, "", false, false, true,
+							procNameAsBytes, procCatAsBytes, "", false, false, true,
 							returnDescriptor, forGetFunctionColumns, 0));
 				}
 
@@ -1733,6 +1757,9 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
 					break; // no parameters actually declared, but whitespace spans lines
 				}
 				
+				// Bug#52167, tokenizer will break if declaration
+				// contains special characters like \n
+				declaration = declaration.replaceAll("[\\t\\n\\x0B\\f\\r]", " ");		
 				StringTokenizer declarationTok = new StringTokenizer(
 						declaration, " \t");
 
@@ -1795,7 +1822,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
 
 						String typeInfo = typeInfoBuf.toString();
 
-						typeDesc = new TypeDescriptor(typeInfo, null);
+						typeDesc = new TypeDescriptor(typeInfo, "YES"); //null);
 					} else {
 						throw SQLError.createSQLException(
 								"Internal error when parsing callable statement metadata (missing parameter type)",
@@ -1812,7 +1839,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
 
 					if (wildCompareRes != StringUtils.WILD_COMPARE_NO_MATCH) {
 						ResultSetRow row = convertTypeDescriptorToProcedureRow(
-								procNameAsBytes, paramName, isOutParam,
+								procNameAsBytes, procCatAsBytes, paramName, isOutParam,
 								isInParam, false, typeDesc, forGetFunctionColumns,
 								ordinal++);
 
@@ -2468,7 +2495,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
 											.getString("Field");
 
 									ordinalFixUpMap.put(fullOrdColName,
-											Constants.integerValueOf(fullOrdinalPos++));
+											Integer.valueOf(fullOrdinalPos++));
 								}
 							}
 
@@ -3565,7 +3592,16 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
 							row[7] = results.getBytes("Seq_in_index");
 							row[8] = results.getBytes("Column_name");
 							row[9] = results.getBytes("Collation");
-							row[10] = results.getBytes("Cardinality");
+							
+							// Cardinality can be much larger than Integer's range,
+							// so we clamp it to conform to the API
+							long cardinality = results.getLong("Cardinality");
+							
+							if (cardinality > Integer.MAX_VALUE) {
+								cardinality = Integer.MAX_VALUE;
+							}
+							
+							row[10] = s2b(String.valueOf(cardinality));
 							row[11] = s2b("0");
 							row[12] = null;
 
@@ -3614,7 +3650,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
 		fields[7] = new Field("", "ORDINAL_POSITION", Types.SMALLINT, 5);
 		fields[8] = new Field("", "COLUMN_NAME", Types.CHAR, 32);
 		fields[9] = new Field("", "ASC_OR_DESC", Types.CHAR, 1);
-		fields[10] = new Field("", "CARDINALITY", Types.INTEGER, 10);
+		fields[10] = new Field("", "CARDINALITY", Types.INTEGER, 20);
 		fields[11] = new Field("", "PAGES", Types.INTEGER, 10);
 		fields[12] = new Field("", "FILTER_CONDITION", Types.CHAR, 32);
 		return fields;
@@ -3624,7 +3660,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
 	 * @see DatabaseMetaData#getJDBCMajorVersion()
 	 */
 	public int getJDBCMajorVersion() throws SQLException {
-		return 3;
+		return 4;
 	}
 
 	/**
@@ -4065,19 +4101,19 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
 	protected Field[] createProcedureColumnsFields() {
 		Field[] fields = new Field[13];
 
-		fields[0] = new Field("", "PROCEDURE_CAT", Types.CHAR, 0);
-		fields[1] = new Field("", "PROCEDURE_SCHEM", Types.CHAR, 0);
-		fields[2] = new Field("", "PROCEDURE_NAME", Types.CHAR, 0);
-		fields[3] = new Field("", "COLUMN_NAME", Types.CHAR, 0);
-		fields[4] = new Field("", "COLUMN_TYPE", Types.CHAR, 0);
-		fields[5] = new Field("", "DATA_TYPE", Types.SMALLINT, 0);
-		fields[6] = new Field("", "TYPE_NAME", Types.CHAR, 0);
-		fields[7] = new Field("", "PRECISION", Types.INTEGER, 0);
-		fields[8] = new Field("", "LENGTH", Types.INTEGER, 0);
-		fields[9] = new Field("", "SCALE", Types.SMALLINT, 0);
-		fields[10] = new Field("", "RADIX", Types.SMALLINT, 0);
-		fields[11] = new Field("", "NULLABLE", Types.SMALLINT, 0);
-		fields[12] = new Field("", "REMARKS", Types.CHAR, 0);
+		fields[0] = new Field("", "PROCEDURE_CAT", Types.CHAR, 512);
+		fields[1] = new Field("", "PROCEDURE_SCHEM", Types.CHAR, 512);
+		fields[2] = new Field("", "PROCEDURE_NAME", Types.CHAR, 512);
+		fields[3] = new Field("", "COLUMN_NAME", Types.CHAR, 512);
+		fields[4] = new Field("", "COLUMN_TYPE", Types.CHAR, 64);
+		fields[5] = new Field("", "DATA_TYPE", Types.SMALLINT, 6);
+		fields[6] = new Field("", "TYPE_NAME", Types.CHAR, 64);
+		fields[7] = new Field("", "PRECISION", Types.INTEGER, 12);
+		fields[8] = new Field("", "LENGTH", Types.INTEGER, 12);
+		fields[9] = new Field("", "SCALE", Types.SMALLINT, 12);
+		fields[10] = new Field("", "RADIX", Types.SMALLINT, 6);
+		fields[11] = new Field("", "NULLABLE", Types.SMALLINT, 6);
+		fields[12] = new Field("", "REMARKS", Types.CHAR, 512);
 		return fields;
 	}
 	
@@ -4088,57 +4124,134 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
 			boolean returnFunctions) throws SQLException {
 
 		List proceduresToExtractList = new ArrayList();
-
+		//Main container to be passed to getProceduresAndOrFunctions
+		ResultSet procedureNameRs = null;
+		
 		if (supportsStoredProcedures()) {
-			if ((procedureOrFunctionNamePattern.indexOf("%") == -1)
-					&& (procedureOrFunctionNamePattern.indexOf("?") == -1)) {
-				proceduresToExtractList.add(procedureOrFunctionNamePattern);
-			} else {
-				
-				ResultSet procedureNameRs = null;
+			try {
+				//getProceduresAndOrFunctions does NOT expect procedureOrFunctionNamePattern 
+				//in form of DB_NAME.SP_NAME thus we need to remove it
+				String tmpProcedureOrFunctionNamePattern = null;
+				//Check if NOT a pattern first, then "sanitize"
+				if ((procedureOrFunctionNamePattern != null) && (procedureOrFunctionNamePattern != "%")) {
+					tmpProcedureOrFunctionNamePattern = StringUtils.sanitizeProcOrFuncName(procedureOrFunctionNamePattern);
+				}
 
-				try {
-
-					procedureNameRs = getProceduresAndOrFunctions(
-							createFieldMetadataForGetProcedures(),
-							catalog, schemaPattern,
-							procedureOrFunctionNamePattern, returnProcedures,
-							returnFunctions);
-
-					while (procedureNameRs.next()) {
-						proceduresToExtractList.add(procedureNameRs
-								.getString(3));
-					}
-
-					// Required to be sorted in name-order by JDBC spec,
-					// in 'normal' case getProcedures takes care of this for us,
-					// but if system tables are inaccessible, we need to sort...
-					// so just do this to be safe...
-					Collections.sort(proceduresToExtractList);
-				} finally {
-					SQLException rethrowSqlEx = null;
-
-					if (procedureNameRs != null) {
-						try {
-							procedureNameRs.close();
-						} catch (SQLException sqlEx) {
-							rethrowSqlEx = sqlEx;
-						}
-					}
+				//Sanity check, if NamePattern is still NULL, we have a wildcard and not the name
+				if (tmpProcedureOrFunctionNamePattern == null) {
+					tmpProcedureOrFunctionNamePattern = procedureOrFunctionNamePattern;
+				} else {
+					//So we have a name to check meaning more actual processing
+					//Keep the Catalog parsed, maybe we'll need it at some point
+					//in the future...
+					String tmpCatalog = catalog;
+					List parseList = StringUtils.splitDBdotName(tmpProcedureOrFunctionNamePattern, tmpCatalog, 
+							this.quotedId, this.conn.isNoBackslashEscapesSet());
 					
-					if (rethrowSqlEx != null) {
-						throw rethrowSqlEx;
+					//There *should* be 2 rows, if any.
+					if (parseList.size() == 2) {
+						tmpCatalog = (String) parseList.get(0);
+						tmpProcedureOrFunctionNamePattern = (String) parseList.get(1);			
+					} else {
+						//keep values as they are
 					}
+				}
+				
+				procedureNameRs = getProceduresAndOrFunctions(
+						createFieldMetadataForGetProcedures(),
+						catalog, schemaPattern,
+						tmpProcedureOrFunctionNamePattern, returnProcedures,
+						returnFunctions);
+
+				// Demand: PARAM_CAT for SP.
+				// Goal: proceduresToExtractList has to have db.sp entries.
+					
+				// Due to https://intranet.mysql.com/secure/paste/displaypaste.php?codeid=10704
+				// introducing new variables, ignoring ANSI mode
+					
+				String tmpstrPNameRs = null; 
+				String tmpstrCatNameRs = null;
+
+				boolean hasResults = false;
+				while (procedureNameRs.next()) {
+					tmpstrCatNameRs = procedureNameRs.getString(1);
+					tmpstrPNameRs = procedureNameRs.getString(3);
+					
+					if (!((tmpstrCatNameRs.startsWith(this.quotedId) && tmpstrCatNameRs.endsWith(this.quotedId)) || 
+							(tmpstrCatNameRs.startsWith("\"") && tmpstrCatNameRs.endsWith("\"")))) {
+						tmpstrCatNameRs = this.quotedId + tmpstrCatNameRs + this.quotedId;
+					}
+					if (!((tmpstrPNameRs.startsWith(this.quotedId) && tmpstrPNameRs.endsWith(this.quotedId)) || 
+							(tmpstrPNameRs.startsWith("\"") && tmpstrPNameRs.endsWith("\"")))) {
+						tmpstrPNameRs = this.quotedId + tmpstrPNameRs + this.quotedId;
+					}
+
+					if (proceduresToExtractList.indexOf(tmpstrCatNameRs + "." + tmpstrPNameRs) < 0) {
+						proceduresToExtractList.add(tmpstrCatNameRs + "." + tmpstrPNameRs);
+					}
+					hasResults = true;
+				}
+
+				// FIX for Bug#56305, allowing the code to proceed with empty fields causing NPE later
+				if (!hasResults) {
+//					throw SQLError.createSQLException(
+//							"User does not have access to metadata required to determine " +
+//							"stored procedure parameter types. If rights can not be granted, configure connection with \"noAccessToProcedureBodies=true\" " +
+//							"to have driver generate parameters that represent INOUT strings irregardless of actual parameter types.",
+//							SQLError.SQL_STATE_GENERAL_ERROR, getExceptionInterceptor());		
+				} else {
+					Collections.sort(proceduresToExtractList);					
+				}
+
+				// Required to be sorted in name-order by JDBC spec,
+				// in 'normal' case getProcedures takes care of this for us,
+				// but if system tables are inaccessible, we need to sort...
+				// so just do this to be safe...
+				//Collections.sort(proceduresToExtractList);
+			} finally {
+				SQLException rethrowSqlEx = null;
+
+				if (procedureNameRs != null) {
+					try {
+						procedureNameRs.close();
+					} catch (SQLException sqlEx) {
+						rethrowSqlEx = sqlEx;
+					}
+				}
+					
+				if (rethrowSqlEx != null) {
+					throw rethrowSqlEx;
 				}
 			}
 		}
 
 		ArrayList resultRows = new ArrayList();
-
+		int idx = 0;
+		String procNameToCall = "";
+		
 		for (Iterator iter = proceduresToExtractList.iterator(); iter.hasNext();) {
 			String procName = (String) iter.next();
 
-			getCallStmtParameterTypes(catalog, procName, columnNamePattern,
+			//Continuing from above (database_name.sp_name)
+			if (!" ".equals(this.quotedId)) {
+				idx = StringUtils.indexOfIgnoreCaseRespectQuotes(0,
+						procName, ".", this.quotedId.charAt(0), !this.conn
+								.isNoBackslashEscapesSet());
+			} else {
+				idx = procName.indexOf(".");
+			}
+			
+			if (idx > 0) {
+				catalog = procName.substring(0,idx);
+				if (quotedId != " " && catalog.startsWith(quotedId) && catalog.endsWith(quotedId)) {
+					catalog = procName.substring(1, catalog.length() - 1);
+				}
+				procNameToCall = procName; // Leave as CAT.PROC, needed later
+			} else {
+				//No catalog. Not sure how to handle right now...
+				procNameToCall = procName;
+			}
+			getCallStmtParameterTypes(catalog, procNameToCall, columnNamePattern,
 					resultRows, 
 					fields.length == 17 /* for getFunctionColumns */);
 		}
@@ -4242,7 +4355,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
 					boolean fromSelect = false;
 					ResultSet proceduresRs = null;
 					boolean needsClientFiltering = true;
-					PreparedStatement proceduresStmt = (PreparedStatement) conn
+					java.sql.PreparedStatement proceduresStmt = conn
 							.clientPrepareStatement("SELECT name, type, comment FROM mysql.proc WHERE name like ? and db <=> ? ORDER BY name");
 
 					try {
@@ -4254,6 +4367,9 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
 						boolean hasTypeColumn = false;
 
 						if (db != null) {
+							if(conn.lowerCaseTableNames()){
+								db = db.toLowerCase();
+							}
 							proceduresStmt.setString(2, db);
 						} else {
 							proceduresStmt.setNull(2, Types.VARCHAR);
@@ -4289,7 +4405,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
 								nameIndex = 1;
 							}
 
-							proceduresStmt = (PreparedStatement) conn
+							proceduresStmt =  conn
 									.clientPrepareStatement("SHOW PROCEDURE STATUS LIKE ?");
 
 							if (proceduresStmt.getMaxRows() != 0) {
@@ -4313,7 +4429,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
 								proceduresStmt.close();
 							}
 
-							proceduresStmt = (PreparedStatement) conn
+							proceduresStmt = conn
 									.clientPrepareStatement("SHOW FUNCTION STATUS LIKE ?");
 
 							if (proceduresStmt.getMaxRows() != 0) {
@@ -4324,12 +4440,13 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
 
 							proceduresRs = proceduresStmt.executeQuery();
 
-							if (returnFunctions) {
-								convertToJdbcFunctionList(db, proceduresRs,
-									needsClientFiltering, db,
-									procedureRowsOrderedByName, nameIndex,
-									fields);
-							}
+						}
+						//Should be here, not in IF block!
+						if (returnFunctions) {
+							convertToJdbcFunctionList(db, proceduresRs,
+								needsClientFiltering, db,
+								procedureRowsOrderedByName, nameIndex,
+								fields);
 						}
 
 						// Now, sort them
@@ -4818,7 +4935,25 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
 
 		final Statement stmt = this.conn.getMetadataSafeStatement();
 
-		final String tableNamePat = tableNamePattern;
+		final String tableNamePat;
+		String tmpCat = "";
+		
+		if ((catalog == null) || (catalog.length() == 0)) {
+			if (this.conn.getNullCatalogMeansCurrent()) {
+				tmpCat = this.database;
+			}
+		} else {
+			tmpCat = catalog;
+		}
+		
+		List parseList = StringUtils.splitDBdotName(tableNamePattern, tmpCat,  
+				quotedId , conn.isNoBackslashEscapesSet());
+		//There *should* be 2 rows, if any.
+		if (parseList.size() == 2) {
+			tableNamePat = (String) parseList.get(1);
+		} else {
+			tableNamePat = tableNamePattern;
+		}
 
 		final boolean operatingOnInformationSchema = "information_schema".equalsIgnoreCase(catalog);
 		
@@ -4835,7 +4970,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
 								results = stmt
 									.executeQuery("SHOW TABLES FROM "
 											+ quotedId + catalogStr.toString()
-											+ quotedId + " LIKE '"
+											+ quotedId + " LIKE '" 
 											+ tableNamePat + "'");
 							} catch (SQLException sqlEx) {
 								if (SQLError.SQL_STATE_COMMUNICATION_LINK_FAILURE.equals(sqlEx.getSQLState())) {
@@ -7635,7 +7770,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
 	 *             DOCUMENT ME!
 	 */
 	public boolean supportsMultipleResultSets() throws SQLException {
-		return false;
+		return this.conn.versionMeetsMinimum(4, 1, 0);
 	}
 
 	/**
@@ -8102,23 +8237,23 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
 
 	protected Field[] createFunctionColumnsFields() {
 		Field[] fields = {
-    			new Field("", "FUNCTION_CAT", Types.VARCHAR, 0),
-    			new Field("", "FUNCTION_SCHEM", Types.VARCHAR, 0),
-    			new Field("", "FUNCTION_NAME", Types.VARCHAR, 0),
-    			new Field("", "COLUMN_NAME", Types.VARCHAR, 0),
-    			new Field("", "COLUMN_TYPE", Types.VARCHAR, 0),
-    			new Field("", "DATA_TYPE", Types.SMALLINT, 0),
-    			new Field("", "TYPE_NAME", Types.VARCHAR, 0),
-    			new Field("", "PRECISION", Types.INTEGER, 0),
-    			new Field("", "LENGTH", Types.INTEGER, 0),
-    			new Field("", "SCALE", Types.SMALLINT, 0),
-    			new Field("", "RADIX", Types.SMALLINT, 0),
-    			new Field("", "NULLABLE", Types.SMALLINT, 0),
-    			new Field("", "REMARKS", Types.VARCHAR, 0),
-    			new Field("", "CHAR_OCTET_LENGTH", Types.INTEGER, 0),
-    			new Field("", "ORDINAL_POSITION", Types.INTEGER, 0),
-    			new Field("", "IS_NULLABLE", Types.VARCHAR, 3),
-    			new Field("", "SPECIFIC_NAME", Types.VARCHAR, 0)};
+    			new Field("", "FUNCTION_CAT", Types.VARCHAR, 512),
+    			new Field("", "FUNCTION_SCHEM", Types.VARCHAR, 512),
+    			new Field("", "FUNCTION_NAME", Types.VARCHAR, 512),
+    			new Field("", "COLUMN_NAME", Types.VARCHAR, 512),
+    			new Field("", "COLUMN_TYPE", Types.VARCHAR, 64),
+    			new Field("", "DATA_TYPE", Types.SMALLINT, 6),
+    			new Field("", "TYPE_NAME", Types.VARCHAR, 64),
+    			new Field("", "PRECISION", Types.INTEGER, 12),
+    			new Field("", "LENGTH", Types.INTEGER, 12),
+    			new Field("", "SCALE", Types.SMALLINT, 12),
+    			new Field("", "RADIX", Types.SMALLINT, 6),
+    			new Field("", "NULLABLE", Types.SMALLINT, 6),
+    			new Field("", "REMARKS", Types.VARCHAR, 512),
+    			new Field("", "CHAR_OCTET_LENGTH", Types.INTEGER, 32),
+    			new Field("", "ORDINAL_POSITION", Types.INTEGER, 32),
+    			new Field("", "IS_NULLABLE", Types.VARCHAR, 12),
+    			new Field("", "SPECIFIC_NAME", Types.VARCHAR, 64)};
 		return fields;
 	}
 
@@ -8146,18 +8281,17 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
 	 * @return PreparedStatement
 	 * @throws SQLException
 	 */
-	protected PreparedStatement prepareMetaDataSafeStatement(String sql)
+	protected java.sql.PreparedStatement prepareMetaDataSafeStatement(String sql)
 			throws SQLException {
 		// Can't use server-side here as we coerce a lot of types to match
 		// the spec.
-		PreparedStatement pStmt = (PreparedStatement) this.conn
-				.clientPrepareStatement(sql);
+		java.sql.PreparedStatement pStmt = this.conn.clientPrepareStatement(sql);
 
 		if (pStmt.getMaxRows() != 0) {
 			pStmt.setMaxRows(0);
 		}
 
-		pStmt.setHoldResultsOpenOverClose(true);
+		((com.mysql.jdbc.Statement) pStmt).setHoldResultsOpenOverClose(true);
 
 		return pStmt;
 	}

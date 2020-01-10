@@ -1,26 +1,24 @@
 /*
- Copyright  2002-2007 MySQL AB, 2008 Sun Microsystems
- All rights reserved. Use is subject to license terms.
+ Copyright (c) 2002, 2010, Oracle and/or its affiliates. All rights reserved.
+ 
 
-  The MySQL Connector/J is licensed under the terms of the GPL,
-  like most MySQL Connectors. There are special exceptions to the
-  terms and conditions of the GPL as it is applied to this software,
-  see the FLOSS License Exception available on mysql.com.
+  The MySQL Connector/J is licensed under the terms of the GPLv2
+  <http://www.gnu.org/licenses/old-licenses/gpl-2.0.html>, like most MySQL Connectors.
+  There are special exceptions to the terms and conditions of the GPLv2 as it is applied to
+  this software, see the FLOSS License Exception
+  <http://www.mysql.com/about/legal/licensing/foss-exception.html>.
 
-  This program is free software; you can redistribute it and/or
-  modify it under the terms of the GNU General Public License as
-  published by the Free Software Foundation; version 2 of the
-  License.
+  This program is free software; you can redistribute it and/or modify it under the terms
+  of the GNU General Public License as published by the Free Software Foundation; version 2
+  of the License.
 
-  This program is distributed in the hope that it will be useful,  
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
+  This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+  without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  See the GNU General Public License for more details.
 
-  You should have received a copy of the GNU General Public License
-  along with this program; if not, write to the Free Software
-  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
-  02110-1301 USA
+  You should have received a copy of the GNU General Public License along with this
+  program; if not, write to the Free Software Foundation, Inc., 51 Franklin St, Fifth
+  Floor, Boston, MA 02110-1301  USA
 
 
 
@@ -115,12 +113,12 @@ public class CallableStatementRegressionTest extends BaseTestCase {
 					"testBug3540%", "%");
 
 			assertTrue(this.rs.next());
-			assertTrue("testBug3540".equals(this.rs.getString(3)));
-			assertTrue("x".equals(this.rs.getString(4)));
+			assertEquals("testBug3540", this.rs.getString(3));
+			assertEquals("x", this.rs.getString(4));
 
 			assertTrue(this.rs.next());
-			assertTrue("testBug3540".equals(this.rs.getString(3)));
-			assertTrue("y".equals(this.rs.getString(4)));
+			assertEquals("testBug3540", this.rs.getString(3));
+			assertEquals("y", this.rs.getString(4));
 
 			assertTrue(!this.rs.next());
 		} finally {
@@ -275,8 +273,8 @@ public class CallableStatementRegressionTest extends BaseTestCase {
 					cstmt.registerOutParameter(6, java.sql.Types.VARCHAR);
 					fail("Should've thrown an exception");
 				} catch (SQLException sqlEx) {
-					assertEquals(SQLError.SQL_STATE_ILLEGAL_ARGUMENT, sqlEx
-							.getSQLState());
+					assertEquals(SQLError.SQL_STATE_ILLEGAL_ARGUMENT,
+							sqlEx.getSQLState());
 				}
 
 				cstmt = db1Connection
@@ -338,8 +336,8 @@ public class CallableStatementRegressionTest extends BaseTestCase {
 	}
 
 	/*
-	 * public void testBug9319() throws Exception { boolean doASelect = false; //
-	 * SELECT currently causes the server to hang on the // last execution of
+	 * public void testBug9319() throws Exception { boolean doASelect = false;
+	 * // SELECT currently causes the server to hang on the // last execution of
 	 * this testcase, filed as BUG#9405
 	 * 
 	 * if (versionMeetsMinimum(5, 0, 2)) { if (isAdminConnectionConfigured()) {
@@ -390,7 +388,8 @@ public class CallableStatementRegressionTest extends BaseTestCase {
 	 * 
 	 * try { cstmt.registerOutParameter(6, java.sql.Types.VARCHAR);
 	 * fail("Should've thrown an exception"); } catch (SQLException sqlEx) {
-	 * assertEquals(SQLError.SQL_STATE_ILLEGAL_ARGUMENT, sqlEx .getSQLState()); }
+	 * assertEquals(SQLError.SQL_STATE_ILLEGAL_ARGUMENT, sqlEx .getSQLState());
+	 * }
 	 * 
 	 * cstmt = this.conn .prepareCall("{ call COMPROVAR_USUARI(?, ?, ?, ?, ?)
 	 * }"); cstmt.setString(1, "abc"); cstmt.setString(2, "def");
@@ -408,8 +407,8 @@ public class CallableStatementRegressionTest extends BaseTestCase {
 	 * db2Connection.getMetaData().getIdentifierQuoteString();
 	 * 
 	 * cstmt = db2Connection .prepareCall("{ call " + quoteChar +
-	 * this.conn.getCatalog() + quoteChar + "." + quoteChar + "COMPROVAR_USUARI" +
-	 * quoteChar + "(?, ?, ?, ?, ?) }"); cstmt.setString(1, "abc");
+	 * this.conn.getCatalog() + quoteChar + "." + quoteChar + "COMPROVAR_USUARI"
+	 * + quoteChar + "(?, ?, ?, ?, ?) }"); cstmt.setString(1, "abc");
 	 * cstmt.setString(2, "def"); cstmt.registerOutParameter(3,
 	 * java.sql.Types.INTEGER); cstmt.registerOutParameter(4,
 	 * java.sql.Types.VARCHAR); cstmt.registerOutParameter(5,
@@ -425,7 +424,8 @@ public class CallableStatementRegressionTest extends BaseTestCase {
 	 * db2Connection.createStatement().executeUpdate( // "DROP DATABASE IF
 	 * EXISTS db_9319"); }
 	 * 
-	 * this.stmt .executeUpdate("DROP PROCEDURE IF EXISTS COMPROVAR_USUARI"); } } } }
+	 * this.stmt .executeUpdate("DROP PROCEDURE IF EXISTS COMPROVAR_USUARI"); }
+	 * } } }
 	 */
 
 	/**
@@ -492,10 +492,12 @@ public class CallableStatementRegressionTest extends BaseTestCase {
 						.getParameterType(1));
 			}
 			java.sql.DatabaseMetaData dbmd = this.conn.getMetaData();
-			
-			this.rs = ((com.mysql.jdbc.DatabaseMetaData)dbmd).getFunctionColumns(this.conn.getCatalog(), null, "testBug10310", "%");
+
+			this.rs = ((com.mysql.jdbc.DatabaseMetaData) dbmd)
+					.getFunctionColumns(this.conn.getCatalog(), null,
+							"testBug10310", "%");
 			ResultSetMetaData rsmd = this.rs.getMetaData();
-			
+
 			assertEquals(17, rsmd.getColumnCount());
 			assertEquals("FUNCTION_CAT", rsmd.getColumnName(1));
 			assertEquals("FUNCTION_SCHEM", rsmd.getColumnName(2));
@@ -514,9 +516,9 @@ public class CallableStatementRegressionTest extends BaseTestCase {
 			assertEquals("ORDINAL_POSITION", rsmd.getColumnName(15));
 			assertEquals("IS_NULLABLE", rsmd.getColumnName(16));
 			assertEquals("SPECIFIC_NAME", rsmd.getColumnName(17));
-		     
+
 			this.rs.close();
-			
+
 			assertFalse(cStmt.execute());
 			assertEquals(2f, cStmt.getInt(1), .001);
 			assertEquals("java.lang.Integer", cStmt.getObject(1).getClass()
@@ -545,14 +547,12 @@ public class CallableStatementRegressionTest extends BaseTestCase {
 
 			// Check metadata while we're at it
 
-			
-
 			this.rs = dbmd.getProcedures(this.conn.getCatalog(), null,
 					"testBug10310");
 			this.rs.next();
 			assertEquals("testBug10310", this.rs.getString("PROCEDURE_NAME"));
-			assertEquals(DatabaseMetaData.procedureReturnsResult, this.rs
-					.getShort("PROCEDURE_TYPE"));
+			assertEquals(DatabaseMetaData.procedureReturnsResult,
+					this.rs.getShort("PROCEDURE_TYPE"));
 			cStmt.setNull(2, Types.FLOAT);
 			cStmt.setInt(3, 1);
 			cStmt.setInt(4, 1);
@@ -592,8 +592,7 @@ public class CallableStatementRegressionTest extends BaseTestCase {
 				assertEquals(Types.INTEGER, cStmt.getParameterMetaData()
 						.getParameterType(2));
 			}
-			
-			
+
 		} finally {
 			if (this.rs != null) {
 				this.rs.close();
@@ -867,24 +866,19 @@ public class CallableStatementRegressionTest extends BaseTestCase {
 						+ "('c','2006-08-31 00:00:00'),"
 						+ "('a','2006-08-31 00:00:00')");
 
-		try {
-			this.pstmt = this.conn.prepareStatement("{CALL testBug22297(?)}");
-			this.pstmt.setInt(1, 1);
-			this.rs = this.pstmt.executeQuery();
+		this.pstmt = this.conn.prepareStatement("{CALL testBug22297(?)}");
+		this.pstmt.setInt(1, 1);
+		this.rs = this.pstmt.executeQuery();
 
-			String[] ids = new String[] { "a", "b", "c", "d", "e" };
-			int pos = 0;
+		String[] ids = new String[] { "a", "b", "c", "d", "e" };
+		int pos = 0;
 
-			while (this.rs.next()) {
-				assertEquals(ids[pos++], rs.getString(1));
-				assertEquals(100, rs.getInt(2));
-			}
-
-			assertTrue(this.pstmt.getClass().getName().indexOf("Server") == -1);
-		} finally {
-			closeMemberJDBCResources();
+		while (this.rs.next()) {
+			assertEquals(ids[pos++], rs.getString(1));
+			assertEquals(100, rs.getInt(2));
 		}
 
+		assertTrue(this.pstmt.getClass().getName().indexOf("Server") == -1);
 	}
 
 	public void testHugeNumberOfParameters() throws Exception {
@@ -1061,7 +1055,6 @@ public class CallableStatementRegressionTest extends BaseTestCase {
 
 			cstmt.close();
 		} finally {
-			closeMemberJDBCResources();
 
 			if (cstmt != null) {
 				cstmt.close();
@@ -1128,77 +1121,97 @@ public class CallableStatementRegressionTest extends BaseTestCase {
 						+ "/* after type 1 */ OUT result2 DECIMAL(/*size1*/10,/*size2*/2) /* p2 */)"
 						+ "BEGIN SELECT action, result; END");
 
-		try {
-			this.conn.prepareCall(
-					"{call testBug26959(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)}")
-					.close();
-			this.rs = this.conn.getMetaData().getProcedureColumns(
-					this.conn.getCatalog(), null, "testBug26959", "%");
+		this.conn.prepareCall(
+				"{call testBug26959(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)}")
+				.close();
+		this.rs = this.conn.getMetaData().getProcedureColumns(
+				this.conn.getCatalog(), null, "testBug26959", "%");
 
-			String[] parameterNames = new String[] { "_ACTION",
-					"/*dumb-identifier-1*/", "#dumb-identifier-2",
-					"--dumb-identifier-3", "_CLIENT_ID", "_LOGIN_ID", "_WHERE",
-					"_SORT", "_SQL", "_SONG_ID", "_NOTES", "_RESULT" };
+		String[] parameterNames = new String[] { "_ACTION",
+				"/*dumb-identifier-1*/", "#dumb-identifier-2",
+				"--dumb-identifier-3", "_CLIENT_ID", "_LOGIN_ID", "_WHERE",
+				"_SORT", "_SQL", "_SONG_ID", "_NOTES", "_RESULT" };
 
-			int[] parameterTypes = new int[] { Types.VARCHAR, Types.INTEGER,
-					Types.INTEGER, Types.INTEGER, Types.INTEGER, Types.INTEGER,
-					Types.VARCHAR, Types.VARCHAR, Types.VARCHAR, Types.INTEGER,
-					Types.VARCHAR, Types.VARCHAR };
+		int[] parameterTypes = new int[] { Types.VARCHAR, Types.INTEGER,
+				Types.INTEGER, Types.INTEGER, Types.INTEGER, Types.INTEGER,
+				Types.VARCHAR, Types.VARCHAR, Types.VARCHAR, Types.INTEGER,
+				Types.VARCHAR, Types.VARCHAR };
 
-			int[] direction = new int[] { DatabaseMetaData.procedureColumnIn,
-					DatabaseMetaData.procedureColumnIn,
-					DatabaseMetaData.procedureColumnIn,
-					DatabaseMetaData.procedureColumnIn,
-					DatabaseMetaData.procedureColumnIn,
-					DatabaseMetaData.procedureColumnIn,
-					DatabaseMetaData.procedureColumnIn,
-					DatabaseMetaData.procedureColumnIn,
-					DatabaseMetaData.procedureColumnOut,
-					DatabaseMetaData.procedureColumnIn,
-					DatabaseMetaData.procedureColumnIn,
-					DatabaseMetaData.procedureColumnOut };
+		int[] direction = new int[] { DatabaseMetaData.procedureColumnIn,
+				DatabaseMetaData.procedureColumnIn,
+				DatabaseMetaData.procedureColumnIn,
+				DatabaseMetaData.procedureColumnIn,
+				DatabaseMetaData.procedureColumnIn,
+				DatabaseMetaData.procedureColumnIn,
+				DatabaseMetaData.procedureColumnIn,
+				DatabaseMetaData.procedureColumnIn,
+				DatabaseMetaData.procedureColumnOut,
+				DatabaseMetaData.procedureColumnIn,
+				DatabaseMetaData.procedureColumnIn,
+				DatabaseMetaData.procedureColumnOut };
 
-			int[] precision = new int[] { 20, 10, 10, 10, 10, 10, 2000, 2000,
-					8000, 10, 2000, 10 };
+		int[] precision = new int[] { 20, 10, 10, 10, 10, 10, 2000, 2000, 8000,
+				10, 2000, 10 };
 
-			int index = 0;
+		int index = 0;
 
-			while (this.rs.next()) {
-				assertEquals(parameterNames[index], this.rs
-						.getString("COLUMN_NAME"));
-				assertEquals(parameterTypes[index], this.rs.getInt("DATA_TYPE"));
+		while (this.rs.next()) {
+			assertEquals(parameterNames[index],
+					this.rs.getString("COLUMN_NAME"));
+			assertEquals(parameterTypes[index], this.rs.getInt("DATA_TYPE"));
+
+			switch (index) {
+			case 0:
+			case 6:
+			case 7:
+			case 8:
+			case 10:
+			case 11:
+				assertEquals(precision[index], this.rs.getInt("LENGTH"));
+				break;
+			default:
 				assertEquals(precision[index], this.rs.getInt("PRECISION"));
-				assertEquals(direction[index], this.rs.getInt("COLUMN_TYPE"));
-				index++;
 			}
 
-			this.rs.close();
+			assertEquals(direction[index], this.rs.getInt("COLUMN_TYPE"));
+			index++;
+		}
 
-			index = 0;
-			parameterNames = new String[] { "/*id*/", "result2" };
-			parameterTypes = new int[] { Types.VARCHAR, Types.DECIMAL };
-			precision = new int[] { 20, 10 };
-			direction = new int[] { DatabaseMetaData.procedureColumnIn,
-					DatabaseMetaData.procedureColumnOut };
-			int[] scale = new int[] { 0, 2 };
+		this.rs.close();
 
-			this.conn.prepareCall("{call testBug26959_1(?, ?)}").close();
+		index = 0;
+		parameterNames = new String[] { "/*id*/", "result2" };
+		parameterTypes = new int[] { Types.VARCHAR, Types.DECIMAL };
+		precision = new int[] { 20, 10 };
+		direction = new int[] { DatabaseMetaData.procedureColumnIn,
+				DatabaseMetaData.procedureColumnOut };
+		int[] scale = new int[] { 0, 2 };
 
-			this.rs = this.conn.getMetaData().getProcedureColumns(
-					this.conn.getCatalog(), null, "testBug26959_1", "%");
+		this.conn.prepareCall("{call testBug26959_1(?, ?)}").close();
 
-			while (this.rs.next()) {
-				assertEquals(parameterNames[index], this.rs
-						.getString("COLUMN_NAME"));
-				assertEquals(parameterTypes[index], this.rs.getInt("DATA_TYPE"));
+		this.rs = this.conn.getMetaData().getProcedureColumns(
+				this.conn.getCatalog(), null, "testBug26959_1", "%");
+
+		while (this.rs.next()) {
+			assertEquals(parameterNames[index],
+					this.rs.getString("COLUMN_NAME"));
+			assertEquals(parameterTypes[index], this.rs.getInt("DATA_TYPE"));
+			switch (index) {
+			case 0:
+			case 6:
+			case 7:
+			case 8:
+			case 10:
+			case 11:
+				assertEquals(precision[index], this.rs.getInt("LENGTH"));
+				break;
+			default:
 				assertEquals(precision[index], this.rs.getInt("PRECISION"));
-				assertEquals(scale[index], this.rs.getInt("SCALE"));
-				assertEquals(direction[index], this.rs.getInt("COLUMN_TYPE"));
-
-				index++;
 			}
-		} finally {
-			closeMemberJDBCResources();
+			assertEquals(scale[index], this.rs.getInt("SCALE"));
+			assertEquals(direction[index], this.rs.getInt("COLUMN_TYPE"));
+
+			index++;
 		}
 	}
 
@@ -1273,9 +1286,10 @@ public class CallableStatementRegressionTest extends BaseTestCase {
 			cStmt.addBatch();
 			cStmt.executeBatch();
 
-			assertEquals("BBBBBB", getSingleIndexedValueWithQuery(
-					noProcedureBodiesConn, 1,
-					"SELECT `usuario` FROM testBug28689 WHERE id=1"));
+			assertEquals(
+					"BBBBBB",
+					getSingleIndexedValueWithQuery(noProcedureBodiesConn, 1,
+							"SELECT `usuario` FROM testBug28689 WHERE id=1"));
 		} finally {
 			if (cStmt != null) {
 				cStmt.close();
@@ -1340,8 +1354,11 @@ public class CallableStatementRegressionTest extends BaseTestCase {
 								setters[i].invoke(callable, new Object[] {
 										new Integer(2), null });
 							} catch (InvocationTargetException ive) {
-								if (!(ive.getCause() instanceof com.mysql.jdbc.NotImplemented || 
-										ive.getCause().getClass().getName().equals("java.sql.SQLFeatureNotSupportedException"))) {
+								if (!(ive.getCause() instanceof com.mysql.jdbc.NotImplemented || ive
+										.getCause()
+										.getClass()
+										.getName()
+										.equals("java.sql.SQLFeatureNotSupportedException"))) {
 									throw ive;
 								}
 							}
@@ -1351,8 +1368,11 @@ public class CallableStatementRegressionTest extends BaseTestCase {
 									setters[i].invoke(callable, new Object[] {
 											new Integer(2), Boolean.FALSE });
 								} catch (InvocationTargetException ive) {
-									if (!(ive.getCause() instanceof com.mysql.jdbc.NotImplemented || 
-											ive.getCause().getClass().getName().equals("java.sql.SQLFeatureNotSupportedException"))) {
+									if (!(ive.getCause() instanceof com.mysql.jdbc.NotImplemented || ive
+											.getCause()
+											.getClass()
+											.getName()
+											.equals("java.sql.SQLFeatureNotSupportedException"))) {
 										throw ive;
 									}
 								}
@@ -1365,8 +1385,11 @@ public class CallableStatementRegressionTest extends BaseTestCase {
 											new Object[] { new Integer(2),
 													new Byte((byte) 0) });
 								} catch (InvocationTargetException ive) {
-									if (!(ive.getCause() instanceof com.mysql.jdbc.NotImplemented || 
-											ive.getCause().getClass().getName().equals("java.sql.SQLFeatureNotSupportedException"))) {
+									if (!(ive.getCause() instanceof com.mysql.jdbc.NotImplemented || ive
+											.getCause()
+											.getClass()
+											.getName()
+											.equals("java.sql.SQLFeatureNotSupportedException"))) {
 										throw ive;
 									}
 								}
@@ -1379,8 +1402,11 @@ public class CallableStatementRegressionTest extends BaseTestCase {
 									setters[i].invoke(callable, new Object[] {
 											new Integer(2), new Double(0) });
 								} catch (InvocationTargetException ive) {
-									if (!(ive.getCause() instanceof com.mysql.jdbc.NotImplemented || 
-											ive.getCause().getClass().getName().equals("java.sql.SQLFeatureNotSupportedException"))) {
+									if (!(ive.getCause() instanceof com.mysql.jdbc.NotImplemented || ive
+											.getCause()
+											.getClass()
+											.getName()
+											.equals("java.sql.SQLFeatureNotSupportedException"))) {
 										throw ive;
 									}
 								}
@@ -1393,8 +1419,11 @@ public class CallableStatementRegressionTest extends BaseTestCase {
 									setters[i].invoke(callable, new Object[] {
 											new Integer(2), new Float(0) });
 								} catch (InvocationTargetException ive) {
-									if (!(ive.getCause() instanceof com.mysql.jdbc.NotImplemented || 
-											ive.getCause().getClass().getName().equals("java.sql.SQLFeatureNotSupportedException"))) {
+									if (!(ive.getCause() instanceof com.mysql.jdbc.NotImplemented || ive
+											.getCause()
+											.getClass()
+											.getName()
+											.equals("java.sql.SQLFeatureNotSupportedException"))) {
 										throw ive;
 									}
 								}
@@ -1407,8 +1436,11 @@ public class CallableStatementRegressionTest extends BaseTestCase {
 									setters[i].invoke(callable, new Object[] {
 											new Integer(2), new Integer(0) });
 								} catch (InvocationTargetException ive) {
-									if (!(ive.getCause() instanceof com.mysql.jdbc.NotImplemented || 
-											ive.getCause().getClass().getName().equals("java.sql.SQLFeatureNotSupportedException"))) {
+									if (!(ive.getCause() instanceof com.mysql.jdbc.NotImplemented || ive
+											.getCause()
+											.getClass()
+											.getName()
+											.equals("java.sql.SQLFeatureNotSupportedException"))) {
 										throw ive;
 									}
 								}
@@ -1420,8 +1452,11 @@ public class CallableStatementRegressionTest extends BaseTestCase {
 									setters[i].invoke(callable, new Object[] {
 											new Integer(2), new Long(0) });
 								} catch (InvocationTargetException ive) {
-									if (!(ive.getCause() instanceof com.mysql.jdbc.NotImplemented || 
-											ive.getCause().getClass().getName().equals("java.sql.SQLFeatureNotSupportedException"))) {
+									if (!(ive.getCause() instanceof com.mysql.jdbc.NotImplemented || ive
+											.getCause()
+											.getClass()
+											.getName()
+											.equals("java.sql.SQLFeatureNotSupportedException"))) {
 										throw ive;
 									}
 								}
@@ -1433,8 +1468,11 @@ public class CallableStatementRegressionTest extends BaseTestCase {
 											new Integer(2),
 											new Short((short) 0) });
 								} catch (InvocationTargetException ive) {
-									if (!(ive.getCause() instanceof com.mysql.jdbc.NotImplemented || 
-											ive.getCause().getClass().getName().equals("java.sql.SQLFeatureNotSupportedException"))) {
+									if (!(ive.getCause() instanceof com.mysql.jdbc.NotImplemented || ive
+											.getCause()
+											.getClass()
+											.getName()
+											.equals("java.sql.SQLFeatureNotSupportedException"))) {
 										throw ive;
 									}
 								}
@@ -1581,27 +1619,30 @@ public class CallableStatementRegressionTest extends BaseTestCase {
 
 		}
 	}
-	
+
 	public void testNotReallyCallableStatement() throws Exception {
 		if (!versionMeetsMinimum(5, 0)) {
 			return;
 		}
-		
+
 		CallableStatement cstmt = null;
-		
+
 		try {
-			this.stmt.executeUpdate("DROP TABLE IF EXISTS testNotReallyCallableStatement");
-			cstmt = this.conn.prepareCall("CREATE TABLE testNotReallyCallableStatement(field1 INT)");
-			
+			this.stmt
+					.executeUpdate("DROP TABLE IF EXISTS testNotReallyCallableStatement");
+			cstmt = this.conn
+					.prepareCall("CREATE TABLE testNotReallyCallableStatement(field1 INT)");
+
 		} finally {
-			this.stmt.executeUpdate("DROP TABLE IF EXISTS testNotReallyCallableStatement");
-			
+			this.stmt
+					.executeUpdate("DROP TABLE IF EXISTS testNotReallyCallableStatement");
+
 			if (cstmt != null) {
 				cstmt.close();
 			}
 		}
 	}
-	
+
 	public void testBug35199() throws Exception {
 		if (!versionMeetsMinimum(5, 0)) {
 			return;
@@ -1626,19 +1667,17 @@ public class CallableStatementRegressionTest extends BaseTestCase {
 			}
 		}
 	}
-	
+
 	public void testBug49831() throws Exception {
 		if (!serverSupportsStoredProcedures()) {
 			return;
 		}
-		
+
 		createTable("testBug49831", "(val varchar(32))");
-		
-		createProcedure("pTestBug49831", "(testval varchar(32)) "
-			+ "BEGIN "
-			+ "insert into testBug49831 (val) values (testval);"
-			+ "END;");
-		
+
+		createProcedure("pTestBug49831", "(testval varchar(32)) " + "BEGIN "
+				+ "insert into testBug49831 (val) values (testval);" + "END;");
+
 		execProcBug49831(this.conn);
 		this.stmt.execute("TRUNCATE TABLE testBug49831");
 		assertEquals(0, getRowCount("testBug49831"));
@@ -1648,9 +1687,9 @@ public class CallableStatementRegressionTest extends BaseTestCase {
 		} finally {
 			noBodiesConn.close();
 		}
-		
+
 	}
-	
+
 	private void execProcBug49831(Connection c) throws Exception {
 		CallableStatement cstmt = c.prepareCall("{call pTestBug49831(?)}");
 		cstmt.setObject(1, "abc", Types.VARCHAR, 32);
@@ -1659,10 +1698,184 @@ public class CallableStatementRegressionTest extends BaseTestCase {
 		cstmt.addBatch();
 		cstmt.executeBatch();
 		assertEquals(2, getRowCount("testBug49831"));
-		this.rs = this.stmt.executeQuery("SELECT * from testBug49831 ORDER BY VAL ASC");
+		this.rs = this.stmt
+				.executeQuery("SELECT * from testBug49831 ORDER BY VAL ASC");
 		this.rs.next();
 		assertEquals("abc", this.rs.getString(1));
 		this.rs.next();
 		assertEquals("def", this.rs.getString(1));
 	}
+
+	public void testBug43576() throws Exception {
+		createTable("TMIX91P", "(F01SMALLINT         SMALLINT NOT NULL,"
+				+ " F02INTEGER          INTEGER," + "F03REAL             REAL,"
+				+ "F04FLOAT            FLOAT,"
+				+ "F05NUMERIC31X4      NUMERIC(31,4),"
+				+ " F06NUMERIC16X16     NUMERIC(16,16),"
+				+ " F07CHAR_10          CHAR(10),"
+				+ " F08VARCHAR_10       VARCHAR(10),"
+				+ " F09CHAR_20          CHAR(20),"
+				+ " F10VARCHAR_20       VARCHAR(20),"
+				+ " F11DATE         DATE," + " F12DATETIME         DATETIME,"
+				+ " PRIMARY KEY (F01SMALLINT))");
+
+		this.stmt
+				.executeUpdate("INSERT INTO TMIX91P VALUES (1,1,1234567.12,1234567.12,111111111111111111111111111.1111,.111111111111111,'1234567890','1234567890','CHAR20CHAR20','VARCHAR20ABCD','2001-01-01','2001-01-01 01:01:01.111')");
+
+		this.stmt
+				.executeUpdate("INSERT INTO TMIX91P VALUES (7,1,1234567.12,1234567.12,22222222222.0001,.99999999999,'1234567896','1234567896','CHAR20','VARCHAR20ABCD','2001-01-01','2001-01-01 01:01:01.111')");
+
+		this.stmt
+				.executeUpdate("INSERT INTO TMIX91P VALUES (12,12,1234567.12,1234567.12,111222333.4444,.1234567890,'2234567891','2234567891','CHAR20','VARCHAR20VARCHAR20','2001-01-01','2001-01-01 01:01:01.111')");
+
+		createProcedure(
+				"MSQSPR100",
+				"\n"
+						+ "( p1_in  INTEGER , p2_in  CHAR(20), OUT p3_out INTEGER, OUT p4_out CHAR(11))"
+						+ "\nBEGIN "
+						+ "\n SELECT F01SMALLINT,F02INTEGER, F11DATE,F12DATETIME,F03REAL "
+						+ "\n FROM TMIX91P WHERE F02INTEGER = p1_in; "
+						+ "\n SELECT F02INTEGER,F07CHAR_10,F08VARCHAR_10,F09CHAR_20 "
+						+ "\n FROM TMIX91P WHERE  F09CHAR_20 = p2_in ORDER BY F02INTEGER ; "
+						+ "\n SET p3_out  = 144; "
+						+ "\n SET p4_out  = 'CHARACTER11'; "
+						+ "\n SELECT p3_out, p4_out; " + "END");
+
+		String sql = "{call MSQSPR100(1,'CHAR20',?,?)}";
+
+		CallableStatement cs = conn.prepareCall(sql);
+
+		cs.registerOutParameter(1, Types.INTEGER);
+		cs.registerOutParameter(2, Types.CHAR);
+
+		cs.execute();
+		cs.close();
+
+		createProcedure("bug43576_1",
+				"(OUT nfact VARCHAR(100), IN ccuenta VARCHAR(100),"
+						+ "\nOUT ffact VARCHAR(100),"
+						+ "\nOUT fdoc VARCHAR(100))" + "\nBEGIN"
+						+ "\nSET nfact = 'ncfact string';"
+						+ "\nSET ffact = 'ffact string';"
+						+ "\nSET fdoc = 'fdoc string';" + "\nEND");
+
+		createProcedure("bug43576_2",
+				"(IN ccuent1 VARCHAR(100), IN ccuent2 VARCHAR(100),"
+						+ "\nOUT nfact VARCHAR(100),"
+						+ "\nOUT ffact VARCHAR(100),"
+						+ "\nOUT fdoc VARCHAR(100))" + "\nBEGIN"
+						+ "\nSET nfact = 'ncfact string';"
+						+ "\nSET ffact = 'ffact string';"
+						+ "\nSET fdoc = 'fdoc string';" + "\nEND");
+
+		Properties props = new Properties();
+		props.put("jdbcCompliantTruncation", "true");
+		props.put("useInformationSchema", "true");
+		Connection conn1 = null;
+		conn1 = getConnectionWithProps(props);
+		try {
+			CallableStatement callSt = conn1
+					.prepareCall("{ call bug43576_1(?, ?, ?, ?) }");
+			callSt.setString(2, "xxx");
+			callSt.registerOutParameter(1, java.sql.Types.VARCHAR);
+			callSt.registerOutParameter(3, java.sql.Types.VARCHAR);
+			callSt.registerOutParameter(4, java.sql.Types.VARCHAR);
+			callSt.execute();
+
+			assertEquals("ncfact string", callSt.getString(1));
+			assertEquals("ffact string", callSt.getString(3));
+			assertEquals("fdoc string", callSt.getString(4));
+
+			CallableStatement callSt2 = conn1
+					.prepareCall("{ call bug43576_2(?, ?, ?, ?, ?) }");
+			callSt2.setString(1, "xxx");
+			callSt2.setString(2, "yyy");
+			callSt2.registerOutParameter(3, java.sql.Types.VARCHAR);
+			callSt2.registerOutParameter(4, java.sql.Types.VARCHAR);
+			callSt2.registerOutParameter(5, java.sql.Types.VARCHAR);
+			callSt2.execute();
+
+			assertEquals("ncfact string", callSt2.getString(3));
+			assertEquals("ffact string", callSt2.getString(4));
+			assertEquals("fdoc string", callSt2.getString(5));
+
+			CallableStatement callSt3 = conn1
+					.prepareCall("{ call bug43576_2(?, 'yyy', ?, ?, ?) }");
+			callSt3.setString(1, "xxx");
+			// callSt3.setString(2, "yyy");
+			callSt3.registerOutParameter(2, java.sql.Types.VARCHAR);
+			callSt3.registerOutParameter(3, java.sql.Types.VARCHAR);
+			callSt3.registerOutParameter(4, java.sql.Types.VARCHAR);
+			callSt3.execute();
+
+			assertEquals("ncfact string", callSt3.getString(2));
+			assertEquals("ffact string", callSt3.getString(3));
+			assertEquals("fdoc string", callSt3.getString(4));
+		} finally {
+			conn1.close();
+		}
+	}
+
+	/**
+	 * Tests fix for Bug#57022 - cannot execute a store procedure with output
+	 * parameters Problem was in CallableStatement.java, private void
+	 * determineParameterTypes() throws SQLException if (procName.indexOf(".")
+	 * == -1) { useCatalog = true; } The fix will be to "sanitize" db.sp call
+	 * just like in noAccessToProcedureBodies.
+	 * 
+	 * @throws Exception
+	 *             if the test fails
+	 */
+
+	public void testBug57022() throws Exception {
+		if (!serverSupportsStoredProcedures()) {
+			return;
+		}
+
+		String originalCatalog = this.conn.getCatalog();
+
+		createDatabase("bug57022");
+
+		createProcedure("bug57022.procbug57022", "(x int, out y int)\n"
+				+ "begin\n" + "declare z int;\n" + "set z = x+1, y = z;\n"
+				+ "end\n");
+
+		CallableStatement cStmt = null;
+		try {
+			cStmt = this.conn
+					.prepareCall("{call `bug57022`.`procbug57022`(?, ?)}");
+			cStmt.setInt(1, 5);
+			cStmt.registerOutParameter(2, Types.INTEGER);
+
+			cStmt.execute();
+			assertEquals(6, cStmt.getInt(2));
+			cStmt.clearParameters();
+			cStmt.close();
+
+			this.conn.setCatalog("bug57022");
+			cStmt = this.conn.prepareCall("{call bug57022.procbug57022(?, ?)}");
+			cStmt.setInt(1, 5);
+			cStmt.registerOutParameter(2, Types.INTEGER);
+
+			cStmt.execute();
+			assertEquals(6, cStmt.getInt(2));
+			cStmt.clearParameters();
+			cStmt.close();
+
+			this.conn.setCatalog("mysql");
+			cStmt = this.conn
+					.prepareCall("{call `bug57022`.`procbug57022`(?, ?)}");
+			cStmt.setInt(1, 5);
+			cStmt.registerOutParameter(2, Types.INTEGER);
+
+			cStmt.execute();
+			assertEquals(6, cStmt.getInt(2));
+		} finally {
+			cStmt.clearParameters();
+			cStmt.close();
+			this.conn.setCatalog(originalCatalog);
+		}
+
+	}
+
 }

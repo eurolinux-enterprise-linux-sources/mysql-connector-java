@@ -1,14 +1,23 @@
+# Note: although this is a noarch package, it will only build on x86 or x86_64
+# hosts, because you need java-1.6.0-openjdk to build it and that is only
+# provided in RHEL6 for those architectures.  (The resulting noarch package
+# should work everywhere, though.)  To avoid having to retry builds in brew
+# multiple times until you get the right build host, use
+#	rhpkg build --target rhel-6.3-noarch-candidate
+# (adjust branch number as appropriate).
+
+
 %global     builddir        build-mysql-jdbc
 %global     distdir         dist-mysql-jdbc
-%global     gcj_support     1
+%global     gcj_support     0
 %global     java6_rtpath    %{java_home}/jre/lib/rt.jar
 %global     java6_javacpath /usr/bin/javac
 %global     java6_javapath  /usr/bin/javac
 
 Summary:    Official JDBC driver for MySQL
 Name:       mysql-connector-java
-Version:    5.1.12
-Release:    2%{?dist}
+Version:    5.1.17
+Release:    6%{?dist}
 Epoch:      1 
 
 # MySQL FLOSS Exception
@@ -18,49 +27,59 @@ URL:        http://dev.mysql.com/downloads/connector/j/
 
 # Mysql has a mirror redirector for its downloads
 # You can get this tarball by following a link from:
-# http://dev.mysql.com/get/Downloads/Connector-J/%{name}-%{version}.tar.gz/from/pick#mirrors
+# http://dev.mysql.com/get/Downloads/Connector-J/%{name}-%{version}.zip/from/pick#mirrors
 #
-# Following prebuilt jars have been removed from the tarball:
+# Following prebuilt jars and sources have been removed from the tarball:
 #
 # %{name}-%{version}-bin.jar
 # src/lib/ant-contrib.jar
-# src/lib/commons-logging.jar
-# src/lib/Commons-Logging-LICENSE.txt
-# src/lib/c3p0-LICENSE
 # src/lib/c3p0-0.9.1-pre6.jar
+# src/lib/c3p0-0.9.1-pre6.src.zip
 # src/lib/jboss-common-jdbc-wrapper.jar
-# src/lib/jboss-lgpl.txt
-# src/lib/jdbc2_0-stdext.jar
-# src/lib/jta-spec1_0_1.jar
-# src/lib/junit.jar
-# src/lib/LICENSE-AspectJ.html
-# src/lib/log4j-1.2.9.jar
+# src/lib/jboss-common-jdbc-wrapper-src.jar
+# src/lib/slf4j-api-1.6.1.jar
 #
 # See http://bugs.mysql.com/bug.php?id=28512 for details.
 Source0:            %{name}-%{version}.tar.xz
 
+# Patch to build with JDBC 4.1/Java 7
+Patch0:             %{name}-jdbc-4.1.patch
+
 BuildRoot:          %{_tmppath}/%{name}-%{epoch}-%{version}-%{release}-root-%(%{__id_u} -n)
+
+%if ! %{gcj_support}
+BuildArch:          noarch
+%endif
+
 %if %{gcj_support}
 BuildRequires:      java-gcj-compat-devel >= 1.0.31
 Requires(post):     java-gcj-compat >= 1.0.31
 Requires(postun):   java-gcj-compat >= 1.0.31
-%else
-BuildRequires:      java-devel >= 1.4.2
-Requires:           java >= 1.4.2
 %endif
-Requires:           jta >= 1.0
-Requires:           log4j
+
+BuildRequires:      java-devel >= 1:1.6.0
 BuildRequires:      ant >= 1.6.0
 BuildRequires:      ant-contrib >= 1.0
-BuildRequires:      java-devel >= 1.4.0
 BuildRequires:      jpackage-utils >= 1.6
 BuildRequires:      jta >= 1.0
 BuildRequires:      junit
-BuildRequires:      log4j
-BuildRequires:      java-1.6.0-openjdk-devel
+BuildRequires:      slf4j
 BuildRequires:      java-1.5.0-gcj-devel
 BuildRequires:      jakarta-commons-logging
 
+# We switched from arch to noarch build, so we need explicit Obsoletes:
+# to ensure that the old arch-specific packages get removed during upgrade.
+Obsoletes:          mysql-connector-java < 1:5.1.17
+Obsoletes:          mysql-connector-java-debuginfo < 1:5.1.17
+
+# RHEL6 currently doesn't ship a modern JRE in all arches, so we must do this:
+%ifarch %{ix86} x86_64
+Requires: java >= 1:1.6.0
+%else
+Requires: java
+%endif
+Requires:           jta >= 1.0
+Requires:           slf4j
 Requires:               jpackage-utils
 Requires(post):         jpackage-utils
 Requires(postun):       jpackage-utils
@@ -78,19 +97,17 @@ capabilities of MySQL.
 %setup -q -n %{name}-%{version}
 
 # Remove duplicate README.txt files
-rm README.txt
-rm docs/README.txt
+rm README README.txt
 
 # fix line endings
-sed -i 's/\r//' README
-sed -i 's/\r//' docs/README
-sed -i 's/\r//' EXCEPTIONS-CONNECTOR-J
+sed -i 's/\r//' docs/README.txt
 
+%patch0 -p1
 
 %build
 
 # We need both JDK1.5 (for JDBC3.0; appointed by $JAVA_HOME) and JDK1.6 (for JDBC4.0; appointed in the build.xml)
-export CLASSPATH=$(build-classpath jdbc-stdext jta junit log4j commons-logging.jar)
+export CLASSPATH=$(build-classpath jdbc-stdext jta junit slf4j commons-logging.jar)
 export JAVA_HOME=/usr/lib/jvm/java-1.5.0-gcj
 
 # We currently need to disable jboss integration because of missing jboss-common-jdbc-wrapper.jar (built from sources).
@@ -99,6 +116,7 @@ rm -rf src/com/mysql/jdbc/integration/jboss
 rm src/testsuite/regression/ConnectionRegressionTest.java
 rm src/testsuite/regression/DataSourceRegressionTest.java
 rm src/testsuite/simple/ReadOnlyCallableStatementTest.java
+rm src/testsuite/simple/jdbc4/StatementsTest.java
 
 ant -DbuildDir=%{builddir} -DdistDir=%{distdir} -Dcom.mysql.jdbc.java6.rtjar=%{java6_rtpath} -Dcom.mysql.jdbc.java6.javac=%{java6_javacpath} -Dcom.mysql.jdbc.java6.java=%{java6_javapath}
 
@@ -106,7 +124,7 @@ ant -DbuildDir=%{builddir} -DdistDir=%{distdir} -Dcom.mysql.jdbc.java6.rtjar=%{j
 rm -rf $RPM_BUILD_ROOT
 
 install -d -m 755 $RPM_BUILD_ROOT%{_javadir}
-install -m 644 %{builddir}/%{name}-%{version}/%{name}-%{version}-bin.jar \
+install -m 644 %{builddir}/%{name}-%{version}-SNAPSHOT/%{name}-%{version}-SNAPSHOT-bin.jar \
     $RPM_BUILD_ROOT%{_javadir}/%{name}-%{version}.jar
 
 (cd $RPM_BUILD_ROOT%{_javadir} && for jar in *-%{version}*.jar; do ln -sf ${jar} `echo $jar| sed  "s|-%{version}||g"`; done)
@@ -117,9 +135,9 @@ install -m 644 %{builddir}/%{name}-%{version}/%{name}-%{version}-bin.jar \
 %endif
 
 # Install the Maven build information
-install -d -m 755 $RPM_BUILD_ROOT%{_datadir}/maven2/poms
-install -pm 644 src/doc/sources/pom.xml $RPM_BUILD_ROOT%{_datadir}/maven2/poms/JPP-%{name}.pom
-sed -i 's/>@.*</>%{version}</' $RPM_BUILD_ROOT%{_datadir}/maven2/poms/JPP-%{name}.pom
+install -d -m 755 $RPM_BUILD_ROOT%{_mavenpomdir}
+install -pm 644 src/doc/sources/pom.xml $RPM_BUILD_ROOT%{_mavenpomdir}/JPP-%{name}.pom
+sed -i 's/>@.*</>%{version}</' $RPM_BUILD_ROOT%{_mavenpomdir}/JPP-%{name}.pom
 
 %add_to_maven_depmap mysql %{name} %{version} JPP %{name}
 
@@ -147,15 +165,43 @@ rm -rf $RPM_BUILD_ROOT
 
 %files
 %defattr(0644,root,root,0755)
-%doc CHANGES COPYING EXCEPTIONS-CONNECTOR-J README docs
+%doc CHANGES COPYING docs
 %attr(0644,root,root) %{_javadir}/*.jar
 %config(noreplace) %{_mavendepmapfragdir}/*
-%{_datadir}/maven2/poms/*.pom
+%{_mavenpomdir}/*.pom
 %if %{gcj_support}
 %attr(-,root,root) %{_libdir}/gcj/%{name}
 %endif
 
 %changelog
+* Sun May 20 2012 Tom Lane <tgl@redhat.com> 1:5.1.17-6
+- Add explicit Obsoletes to get rid of old arch-specific packages,
+  per discussions in bugs 821892 and 822206
+Related: #816696
+
+* Mon May  7 2012 Tom Lane <tgl@redhat.com> 1:5.1.17-5
+- Tweak java Requires per Deepak Bhole's recommendation.
+Related: #816696
+
+* Mon May  7 2012 Tom Lane <tgl@redhat.com> 1:5.1.17-4
+- Seems we can't Require java after all, per releng RT 152173.
+Related: #816696
+
+* Thu May  3 2012 Tom Lane <tgl@redhat.com> 1:5.1.17-3
+- Fix mysql-connector-java-jdbc-4.1.patch to cover both driver classes
+Resolves: #816696
+
+* Tue May  1 2012 Tom Lane <tgl@redhat.com> 1:5.1.17-2
+- Switch to noarch (non-GCJ) build so that we can BuildRequire JDK >= 1.6;
+  the former build method has not worked since before RHEL6.0 was released,
+  because java-1.6.0-openjdk is no longer shipped for all arches.
+Related: #816696
+
+* Mon Apr 30 2012 Tom Lane <tgl@redhat.com> 1:5.1.17-1
+- Update to 5.1.17 for assorted bug fixes
+- Add patch to provide some stub functions for JDBC 4.1 compatibility
+Resolves: #816696
+
 * Wed May 12 2010 Tom Lane <tgl@redhat.com> 1:5.1.12-2
 - Update to 5.1.12
 Resolves: #591209

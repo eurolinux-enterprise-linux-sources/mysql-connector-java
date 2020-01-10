@@ -1,26 +1,24 @@
 /*
- Copyright  2002-2007 MySQL AB, 2008 Sun Microsystems
- All rights reserved. Use is subject to license terms.
+ Copyright (c) 2002, 2011, Oracle and/or its affiliates. All rights reserved.
+ 
 
-  The MySQL Connector/J is licensed under the terms of the GPL,
-  like most MySQL Connectors. There are special exceptions to the
-  terms and conditions of the GPL as it is applied to this software,
-  see the FLOSS License Exception available on mysql.com.
+  The MySQL Connector/J is licensed under the terms of the GPLv2
+  <http://www.gnu.org/licenses/old-licenses/gpl-2.0.html>, like most MySQL Connectors.
+  There are special exceptions to the terms and conditions of the GPLv2 as it is applied to
+  this software, see the FLOSS License Exception
+  <http://www.mysql.com/about/legal/licensing/foss-exception.html>.
 
-  This program is free software; you can redistribute it and/or
-  modify it under the terms of the GNU General Public License as
-  published by the Free Software Foundation; version 2 of the
-  License.
+  This program is free software; you can redistribute it and/or modify it under the terms
+  of the GNU General Public License as published by the Free Software Foundation; version 2
+  of the License.
 
-  This program is distributed in the hope that it will be useful,  
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
+  This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+  without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  See the GNU General Public License for more details.
 
-  You should have received a copy of the GNU General Public License
-  along with this program; if not, write to the Free Software
-  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
-  02110-1301 USA
+  You should have received a copy of the GNU General Public License along with this
+  program; if not, write to the Free Software Foundation, Inc., 51 Franklin St, Fifth
+  Floor, Boston, MA 02110-1301  USA
 
 
 
@@ -34,6 +32,9 @@ import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.net.SocketException;
+import java.net.UnknownHostException;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.Properties;
 
 /**
@@ -41,7 +42,7 @@ import java.util.Properties;
  * 
  * @author Mark Matthews
  */
-public class StandardSocketFactory implements SocketFactory {
+public class StandardSocketFactory implements SocketFactory, SocketMetadata {
 
 	public static final String TCP_NO_DELAY_PROPERTY_NAME = "tcpNoDelay";
 
@@ -160,7 +161,7 @@ public class StandardSocketFactory implements SocketFactory {
 
 			if (trafficClass > 0 && setTraficClassMethod != null) {
 				setTraficClassMethod.invoke(sock,
-						new Object[] { new Integer(trafficClass) });
+						new Object[] { Integer.valueOf(trafficClass) });
 			}
 		} catch (Throwable t) {
 			unwrapExceptionToProperClassAndThrowIt(t);
@@ -319,7 +320,7 @@ public class StandardSocketFactory implements SocketFactory {
 								Object sockAddr = addrConstructor
 										.newInstance(new Object[] {
 												possibleAddresses[i],
-												new Integer(port) });
+												Integer.valueOf(port) });
 								// bind to the local port, null is 'ok', it
 								// means
 								// use the ephemeral port
@@ -328,7 +329,7 @@ public class StandardSocketFactory implements SocketFactory {
 
 								connectWithTimeoutMethod.invoke(rawSocket,
 										new Object[] { sockAddr,
-												new Integer(connectTimeout) });
+												Integer.valueOf(connectTimeout) });
 
 								break;
 							} catch (Exception ex) {	
@@ -405,5 +406,50 @@ public class StandardSocketFactory implements SocketFactory {
 		}
 
 		throw new SocketException(caughtWhileConnecting.toString());
+	}
+
+	public boolean isLocallyConnected(com.mysql.jdbc.ConnectionImpl conn) throws SQLException {
+		long threadId = conn.getId();
+		java.sql.Statement processListStmt = conn.getMetadataSafeStatement();
+		ResultSet rs = null;
+		
+		try {
+			String processHost = null;
+			
+			rs = processListStmt.executeQuery("SHOW PROCESSLIST");
+			
+			while (rs.next()) {
+				 long id = rs.getLong(1);
+
+                 if (threadId == id) {
+                	 processHost = rs.getString(3);
+                     
+                     break;
+                 }
+			}
+             
+             if (processHost != null) {
+                 if (processHost.indexOf(":") != -1) {
+                	 processHost = processHost.split(":")[0];
+
+                     try {
+                         boolean isLocal;
+
+                    	 isLocal = InetAddress.getByName(processHost).equals(
+                    			 rawSocket.getLocalAddress());
+
+                         return isLocal;
+                     } catch (UnknownHostException e) {
+                         conn.getLog().logWarn(Messages.getString("Connection.CantDetectLocalConnect", new Object[] {host}), e);
+
+                         return false;
+                     }
+                 }
+             }
+             
+             return false;
+		} finally {
+			processListStmt.close();
+		}
 	}
 }

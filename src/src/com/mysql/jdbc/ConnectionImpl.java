@@ -1,29 +1,24 @@
 /*
- Copyright  2002-2007 MySQL AB, 2008 Sun Microsystems
- All rights reserved. Use is subject to license terms.
+  Copyright (c) 2002, 2010, Oracle and/or its affiliates. All rights reserved.
 
-  The MySQL Connector/J is licensed under the terms of the GPL,
-  like most MySQL Connectors. There are special exceptions to the
-  terms and conditions of the GPL as it is applied to this software,
-  see the FLOSS License Exception available on mysql.com.
+  The MySQL Connector/J is licensed under the terms of the GPLv2
+  <http://www.gnu.org/licenses/old-licenses/gpl-2.0.html>, like most MySQL Connectors.
+  There are special exceptions to the terms and conditions of the GPLv2 as it is applied to
+  this software, see the FLOSS License Exception
+  <http://www.mysql.com/about/legal/licensing/foss-exception.html>.
 
-  This program is free software; you can redistribute it and/or
-  modify it under the terms of the GNU General Public License as
-  published by the Free Software Foundation; version 2 of the
-  License.
+  This program is free software; you can redistribute it and/or modify it under the terms
+  of the GNU General Public License as published by the Free Software Foundation; version 2
+  of the License.
 
-  This program is distributed in the hope that it will be useful,  
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
+  This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+  without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  See the GNU General Public License for more details.
 
-  You should have received a copy of the GNU General Public License
-  along with this program; if not, write to the Free Software
-  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
-  02110-1301 USA
-
-
-
+  You should have received a copy of the GNU General Public License along with this
+  program; if not, write to the Free Software Foundation, Inc., 51 Franklin St, Fifth
+  Floor, Boston, MA 02110-1301  USA
+ 
  */
 package com.mysql.jdbc;
 
@@ -32,6 +27,9 @@ import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.Charset;
@@ -44,6 +42,7 @@ import java.sql.SQLWarning;
 import java.sql.Savepoint;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Enumeration;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -51,8 +50,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Random;
 import java.util.Stack;
-import java.util.StringTokenizer;
 import java.util.TimeZone;
 import java.util.Timer;
 import java.util.TreeMap;
@@ -62,7 +61,6 @@ import com.mysql.jdbc.log.LogFactory;
 import com.mysql.jdbc.log.NullLogger;
 import com.mysql.jdbc.profiler.ProfilerEvent;
 import com.mysql.jdbc.profiler.ProfilerEventHandler;
-import com.mysql.jdbc.profiler.ProfilerEventHandlerFactory;
 import com.mysql.jdbc.util.LRUCache;
 
 /**
@@ -80,9 +78,35 @@ import com.mysql.jdbc.util.LRUCache;
  * @see java.sql.Connection
  */
 public class ConnectionImpl extends ConnectionPropertiesImpl implements
-		Connection {
+		MySQLConnection {
 	private static final String JDBC_LOCAL_CHARACTER_SET_RESULTS = "jdbc.local.character_set_results";
-	
+
+   public String getHost() {
+      return host;
+   }
+
+   private MySQLConnection proxy = null;
+   
+   public boolean isProxySet(){
+	   return this.proxy != null;
+   }
+
+   public void setProxy(MySQLConnection proxy) {
+      this.proxy = proxy;
+   }
+
+   // We have to proxy ourselves when we're load balanced so that
+   // statements get routed to the right physical connection
+   // (when load balanced, we're a "logical" connection)
+   private MySQLConnection getProxy() {
+      return (proxy != null) ? proxy : (MySQLConnection) this;
+   }
+   
+   public MySQLConnection getLoadBalanceSafeProxy() {
+	   return this.getProxy();
+   }
+   
+
 	class ExceptionInterceptorChain implements ExceptionInterceptor {
 		List interceptors;
 		
@@ -129,7 +153,7 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 	 * current catalog...In 5.0.x, they don't (currently), but stored procedure
 	 * names soon will, so current catalog is a (hidden) component of the name.
 	 */
-	class CompoundCacheKey {
+	static class CompoundCacheKey {
 		String componentOne;
 
 		String componentTwo;
@@ -221,7 +245,7 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 	private double queryTimeSumSquares;
 	private double queryTimeMean;
 	
-	private Timer cancelTimer;
+	private transient Timer cancelTimer;
 	
 	private List connectionLifecycleInterceptors;
 	
@@ -233,15 +257,15 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 	
 	static {
 		mapTransIsolationNameToValue = new HashMap(8);
-		mapTransIsolationNameToValue.put("READ-UNCOMMITED", Constants.integerValueOf(
+		mapTransIsolationNameToValue.put("READ-UNCOMMITED", Integer.valueOf(
 				TRANSACTION_READ_UNCOMMITTED));
-		mapTransIsolationNameToValue.put("READ-UNCOMMITTED", Constants.integerValueOf(
+		mapTransIsolationNameToValue.put("READ-UNCOMMITTED", Integer.valueOf(
 				TRANSACTION_READ_UNCOMMITTED));
-		mapTransIsolationNameToValue.put("READ-COMMITTED", Constants.integerValueOf(
+		mapTransIsolationNameToValue.put("READ-COMMITTED", Integer.valueOf(
 				TRANSACTION_READ_COMMITTED));
-		mapTransIsolationNameToValue.put("REPEATABLE-READ", Constants.integerValueOf(
+		mapTransIsolationNameToValue.put("REPEATABLE-READ", Integer.valueOf(
 				TRANSACTION_REPEATABLE_READ));
-		mapTransIsolationNameToValue.put("SERIALIZABLE", Constants.integerValueOf(
+		mapTransIsolationNameToValue.put("SERIALIZABLE", Integer.valueOf(
 				TRANSACTION_SERIALIZABLE));
 
 		if (Util.isJdbc4()) {
@@ -315,7 +339,7 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 		return sqlExceptionWithNewMessage;
 	}
 
-	protected synchronized Timer getCancelTimer() {
+	public synchronized Timer getCancelTimer() {
 		if (cancelTimer == null) {
 			boolean createdNamedTimer = false;
 			
@@ -356,10 +380,12 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 
 		return (Connection) Util.handleNewInstance(JDBC_4_CONNECTION_CTOR,
 				new Object[] {
-							hostToConnectTo, Constants.integerValueOf(portToConnectTo), info,
+							hostToConnectTo, Integer.valueOf(portToConnectTo), info,
 							databaseToConnectTo, url }, null);
 	}
 
+	private static final Random random = new Random();
+	
 	private static synchronized int getNextRoundRobinHostIndex(String url,
 			List hostList) {
 		// we really do "random" here, because you don't get even
@@ -367,7 +393,7 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 		
 		int indexRange = hostList.size();
 		
-		int index = (int)(Math.random() * indexRange);
+		int index = random.nextInt(indexRange);
 		
 		return index;
 	}
@@ -381,7 +407,7 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 			return false;
 		}
 
-		return s1.equals(s2);
+		return s1 != null && s1.equals(s2);
 	}
 
 	/** Are we in autoCommit mode? */
@@ -432,16 +458,8 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 	/** The event sink to use for profiling */
 	private ProfilerEventHandler eventSink;
 
-	private boolean executingFailoverReconnect = false;
-
-	/** Are we failed-over to a non-master host */
-	private boolean failedOver = false;
-
 	/** Why was this connection implicitly closed, if known? (for diagnostics) */
 	private Throwable forceClosedReason;
-
-	/** Where was this connection implicitly closed? (for diagnostics) */
-	private Throwable forcedClosedLocation;
 
 	/** Does the server suuport isolation levels? */
 	private boolean hasIsolationLevels = false;
@@ -451,13 +469,7 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 
 	/** The hostname we're connected to */
 	private String host = null;
-
-	/** The list of host(s) to try and connect to */
-	private List hostList = null;
-
-	/** How many hosts are in the host list? */
-	private int hostListSize = 0;
-
+	
 	/**
 	 * We need this 'bootstrapped', because 4.1 and newer will send fields back
 	 * with this even before we fill this dynamically from the server.
@@ -465,7 +477,7 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 	private String[] indexToCharsetMapping = CharsetMapping.INDEX_TO_CHARSET;
 	
 	/** The I/O abstraction interface (network conn to MySQL server */
-	private MysqlIO io = null;
+	private transient MysqlIO io = null;
 	
 	private boolean isClientTzUTC = false;
 
@@ -487,7 +499,7 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 	private long lastQueryFinishedTime = 0;
 
 	/** The logger we're going to use */
-	private Log log = NULL_LOGGER;
+	private transient Log log = NULL_LOGGER;
 
 	/**
 	 * If gathering metrics, what was the execution time of the longest query so
@@ -510,9 +522,6 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 	private long metricsLastReportedMs;
 
 	private long minimumNumberTablesAccessed = Long.MAX_VALUE;
-
-	/** Mutex */
-	private final Object mutex = new Object();
 
 	/** The JDBC URL we're using */
 	private String myURL = null;
@@ -560,17 +569,8 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 	/** The port number we're connected to (defaults to 3306) */
 	private int port = 3306;
 
-	/**
-	 * Used only when testing failover functionality for regressions, causes the
-	 * failover code to not retry the master first
-	 */
-	private boolean preferSlaveDuringFailover = false;
-
 	/** Properties for this connection specified by user */
 	protected Properties props = null;
-
-	/** Number of queries we've issued since the master failed */
-	private long queriesIssuedFailedOver = 0;
 
 	/** Should we retrieve 'info' messages from the server? */
 	private boolean readInfoMsg = false;
@@ -653,6 +653,8 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 	 * problems with \u00A5.
 	 */
 	private boolean requiresEscapingEncoder;
+
+	private String hostPortPair;
 	
 	/**'
 	 * For the delegate only
@@ -685,7 +687,11 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 	
 		this.connectionCreationTimeMillis = System.currentTimeMillis();
 		this.pointOfOrigin = new Throwable();
-		
+
+      if (databaseToConnectTo == null) {
+			databaseToConnectTo = "";
+		}
+
 		// Stash away for later, used to clone this connection for Statement.cancel
 		// and Statement.setQueryTimeout().
 		//
@@ -729,39 +735,35 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 		}
 
 		this.openStatements = new HashMap();
-		this.serverVariables = new HashMap();
-		this.hostList = new ArrayList();
 
-		int numHosts = Integer.parseInt(info.getProperty(Driver.NUM_HOSTS_PROPERTY_KEY));
-		
-		if (hostToConnectTo == null) {
-			this.host = "localhost";
-			this.hostList.add(this.host + ":" + portToConnectTo);
-		} else if (numHosts > 1) {
-			// multiple hosts separated by commas (failover)
+		if (NonRegisteringDriver.isHostPropertiesList(hostToConnectTo)) {
+			Properties hostSpecificProps = NonRegisteringDriver.expandHostKeyValues(hostToConnectTo);
 			
-			for (int i = 0; i < numHosts; i++) {
-				int index = i + 1;
+			Enumeration<?> propertyNames = hostSpecificProps.propertyNames();
+			
+			while (propertyNames.hasMoreElements()) {
+				String propertyName = propertyNames.nextElement().toString();
+				String propertyValue = hostSpecificProps.getProperty(propertyName);
 				
-				this.hostList.add(info.getProperty(Driver.HOST_PROPERTY_KEY + "." + index) + 
-						":" + info.getProperty(Driver.PORT_PROPERTY_KEY + "." + index));
+				info.setProperty(propertyName, propertyValue);
 			}
 		} else {
-			this.host = hostToConnectTo;
-			
-			if (hostToConnectTo.indexOf(":") == -1) {
-				this.hostList.add(this.host + ":" + portToConnectTo);
+		
+			if (hostToConnectTo == null) {
+				this.host = "localhost";
+				this.hostPortPair = this.host + ":" + portToConnectTo;
 			} else {
-				this.hostList.add(this.host);
+				this.host = hostToConnectTo;
+				
+				if (hostToConnectTo.indexOf(":") == -1) {
+					this.hostPortPair = this.host + ":" + portToConnectTo;
+				} else {
+					this.hostPortPair = this.host;
+				}
 			}
 		}
 
-		this.hostListSize = this.hostList.size();
 		this.port = portToConnectTo;
-
-		if (databaseToConnectTo == null) {
-			databaseToConnectTo = "";
-		}
 
 		this.database = databaseToConnectTo;
 		this.myURL = url;
@@ -778,6 +780,9 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 		}
 
 		this.props = info;
+		
+		
+		
 		initializeDriverProperties(info);
 		
 		
@@ -826,12 +831,10 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 		}
 	}
 
-    protected void unSafeStatementInterceptors() throws SQLException {
+    public void unSafeStatementInterceptors() throws SQLException {
     	
     	ArrayList unSafedStatementInterceptors = new ArrayList(this.statementInterceptors.size());
-    	
-    	this.statementInterceptors = new ArrayList(this.statementInterceptors.size());
-    	
+
     	for (int i = 0; i < this.statementInterceptors.size(); i++) {
     		NoSubInterceptorWrapper wrappedInterceptor = (NoSubInterceptorWrapper) this.statementInterceptors.get(i);
     		
@@ -839,9 +842,13 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
     	}
     	
     	this.statementInterceptors = unSafedStatementInterceptors;
+    	
+    	if (this.io != null) {
+    		this.io.setStatementInterceptors(this.statementInterceptors);
+    	}
 	}
     
-    protected void initializeSafeStatementInterceptors() throws SQLException {
+    public void initializeSafeStatementInterceptors() throws SQLException {
     	this.isClosed = false;
     	
     	List unwrappedInterceptors = Util.loadExtensions(this, this.props, 
@@ -869,7 +876,7 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
     	
     }
     
-    protected List getStatementInterceptorsInstances() {
+    public List getStatementInterceptorsInstances() {
     	return this.statementInterceptors;
     }
     
@@ -942,7 +949,7 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 
 					while (results.next()) {
 						String charsetName = results.getString(2);
-						Integer charsetIndex = Constants.integerValueOf(results.getInt(3));
+						Integer charsetIndex = Integer.valueOf(results.getInt(3));
 
 						sortedCollationMap.put(charsetIndex, charsetName);
 					}
@@ -1186,20 +1193,15 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 		}
 	}
 
-	protected void checkClosed() throws SQLException {
+	public void checkClosed() throws SQLException {
 		if (this.isClosed) {
 			throwConnectionClosedException();
 		}
 	}
 
-	void throwConnectionClosedException() throws SQLException {
+	public void throwConnectionClosedException() throws SQLException {
 		StringBuffer messageBuf = new StringBuffer(
 				"No operations allowed after connection closed.");
-
-		if (this.forcedClosedLocation != null || this.forceClosedReason != null) {
-			messageBuf
-			.append("Connection was implicitly closed by the driver.");
-		}
 
 		SQLException ex = SQLError.createSQLException(messageBuf.toString(),
 				SQLError.SQL_STATE_CONNECTION_NOT_OPEN, getExceptionInterceptor());
@@ -1283,7 +1285,7 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 			// can't be used
 			//
 			try {
-				"abc".getBytes(mappedServerEncoding);
+				StringUtils.getBytes("abc",mappedServerEncoding);
 				setEncoding(mappedServerEncoding);
 				setUseUnicode(true);
 			} catch (UnsupportedEncodingException UE) {
@@ -1332,7 +1334,7 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 	 * 
 	 * @throws SQLException
 	 */
-	protected void abortInternal() throws SQLException {
+	public void abortInternal() throws SQLException {
 		if (this.io != null) {
 			try {
 				this.io.forceClose();
@@ -1432,7 +1434,7 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 
 
 	
-	protected java.sql.PreparedStatement clientPrepareStatement(String sql,
+	public java.sql.PreparedStatement clientPrepareStatement(String sql,
 			int resultSetType, int resultSetConcurrency, 
 			boolean processEscapeCodesIfNeeded) throws SQLException {
 		checkClosed();
@@ -1447,7 +1449,7 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 						.get(nativeSql);
 	
 				if (pStmtInfo == null) {
-					pStmt = com.mysql.jdbc.PreparedStatement.getInstance(this, nativeSql,
+					pStmt = com.mysql.jdbc.PreparedStatement.getInstance(getLoadBalanceSafeProxy(), nativeSql,
 							this.database);
 	
 					PreparedStatement.ParseInfo parseInfo = pStmt.getParseInfo();
@@ -1481,12 +1483,12 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 					}
 				} else {
 					pStmtInfo.lastUsed = System.currentTimeMillis();
-					pStmt = new com.mysql.jdbc.PreparedStatement(this, nativeSql,
+					pStmt = new com.mysql.jdbc.PreparedStatement(getLoadBalanceSafeProxy(), nativeSql,
 							this.database, pStmtInfo);
 				}
 			}
 		} else {
-			pStmt = com.mysql.jdbc.PreparedStatement.getInstance(this, nativeSql,
+			pStmt = com.mysql.jdbc.PreparedStatement.getInstance(getLoadBalanceSafeProxy(), nativeSql,
 					this.database);
 		}
 
@@ -1551,7 +1553,7 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 				}
 			}.doForAll();
 		}
-		
+	
 		realClose(true, true, false, null);
 	}
 
@@ -1619,59 +1621,59 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 	 *                if a database access error occurs
 	 * @see setAutoCommit
 	 */
-	public void commit() throws SQLException {
-		synchronized (getMutex()) {
-			checkClosed();
-			
-			try {
-				if (this.connectionLifecycleInterceptors != null) {
-					IterateBlock iter = new IterateBlock(this.connectionLifecycleInterceptors.iterator()) {
+	public synchronized void commit() throws SQLException {
+		checkClosed();
 
-						void forEach(Object each) throws SQLException {
-							if (!((ConnectionLifecycleInterceptor)each).commit()) {
-								this.stopIterating = true;
-							}
+		try {
+			if (this.connectionLifecycleInterceptors != null) {
+				IterateBlock iter = new IterateBlock(this.connectionLifecycleInterceptors.iterator()) {
+
+					void forEach(Object each) throws SQLException {
+						if (!((ConnectionLifecycleInterceptor)each).commit()) {
+							this.stopIterating = true;
 						}
-					};
-					
-					iter.doForAll();
-					
-					if (!iter.fullIteration()) {
-						return;
 					}
-				}
+				};
 				
-				// no-op if _relaxAutoCommit == true
-				if (this.autoCommit && !getRelaxAutoCommit()) {
-					throw SQLError.createSQLException("Can't call commit when autocommit=true", getExceptionInterceptor());
-				} else if (this.transactionsSupported) {
-					if (getUseLocalTransactionState() && versionMeetsMinimum(5, 0, 0)) {
-						if (!this.io.inTransactionOnServer()) {
-							return; // effectively a no-op
-						}
-					}
-					
-					execSQL(null, "commit", -1, null,
-							DEFAULT_RESULT_SET_TYPE,
-							DEFAULT_RESULT_SET_CONCURRENCY, false,
-							this.database, null,
-							false);
+				iter.doForAll();
+				
+				if (!iter.fullIteration()) {
+					return;
 				}
-			} catch (SQLException sqlException) {
-				if (SQLError.SQL_STATE_COMMUNICATION_LINK_FAILURE
-						.equals(sqlException.getSQLState())) {
-					throw SQLError.createSQLException(
-							"Communications link failure during commit(). Transaction resolution unknown.",
-							SQLError.SQL_STATE_TRANSACTION_RESOLUTION_UNKNOWN, getExceptionInterceptor());
-				}
-	
-				throw sqlException;
-			} finally {
-				this.needsPing = this.getReconnectAtTxEnd();
 			}
 			
-			return;
+			// no-op if _relaxAutoCommit == true
+			if (this.autoCommit && !getRelaxAutoCommit()) {
+				throw SQLError.createSQLException("Can't call commit when autocommit=true", getExceptionInterceptor());
+			} else if (this.transactionsSupported) {
+				if (getUseLocalTransactionState() && versionMeetsMinimum(5, 0, 0)) {
+					if (!this.io.inTransactionOnServer()) {
+						return; // effectively a no-op
+					}
+				}
+
+				execSQL(null, "commit", -1, null,
+						DEFAULT_RESULT_SET_TYPE,
+						DEFAULT_RESULT_SET_CONCURRENCY, false,
+						this.database, null,
+						false);
+			}
+		} catch (SQLException sqlException) {
+			if (SQLError.SQL_STATE_COMMUNICATION_LINK_FAILURE
+					.equals(sqlException.getSQLState())) {
+				throw SQLError
+						.createSQLException(
+								"Communications link failure during commit(). Transaction resolution unknown.",
+								SQLError.SQL_STATE_TRANSACTION_RESOLUTION_UNKNOWN,
+								getExceptionInterceptor());
+			}
+
+			throw sqlException;
+		} finally {
+			this.needsPing = this.getReconnectAtTxEnd();
 		}
+
+		return;
 	}
 	
 	/**
@@ -1686,7 +1688,7 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 			// can't be used
 			try {
 				String testString = "abc";
-				testString.getBytes(getEncoding());
+				StringUtils.getBytes(testString, getEncoding());
 			} catch (UnsupportedEncodingException UE) {
 				// Try the MySQL character encoding, then....
 				String oldEncoding = getEncoding();
@@ -1703,7 +1705,7 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 
 				try {
 					String testString = "abc";
-					testString.getBytes(getEncoding());
+					StringUtils.getBytes(testString, getEncoding());
 				} catch (UnsupportedEncodingException encodingEx) {
 					throw SQLError.createSQLException("Unsupported character "
 							+ "encoding '" + getEncoding() + "'.",
@@ -1808,13 +1810,26 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 								|| realJavaEncoding.equalsIgnoreCase("UTF8")) {
 							// charset names are case-sensitive
 
+							boolean utf8mb4Supported = versionMeetsMinimum(5, 5, 2);
+							boolean useutf8mb4 = false;
+							
+							if (utf8mb4Supported) {
+								useutf8mb4 = (this.io.serverCharsetIndex == 45);
+							}
+							
 							if (!getUseOldUTF8Behavior()) {
-								if (dontCheckServerMatch || !characterSetNamesMatches("utf8")) {
-									execSQL(null, "SET NAMES utf8", -1, null,
+								if (dontCheckServerMatch || !characterSetNamesMatches("utf8") 
+										|| (utf8mb4Supported && !characterSetNamesMatches("utf8mb4"))) {
+									execSQL(null, "SET NAMES " + (useutf8mb4 ? "utf8mb4" : "utf8"), -1, null,
 											DEFAULT_RESULT_SET_TYPE,
 											DEFAULT_RESULT_SET_CONCURRENCY,
 											false, this.database, null, false);
 								}
+							} else {
+								execSQL(null, "SET NAMES latin1", -1, null,
+										DEFAULT_RESULT_SET_TYPE,
+										DEFAULT_RESULT_SET_CONCURRENCY,
+										false, this.database, null, false);
 							}
 
 							setEncoding(realJavaEncoding);
@@ -1857,6 +1872,10 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 						String mysqlEncodingName = CharsetMapping
 								.getMysqlEncodingForJavaEncoding(getEncoding()
 										.toUpperCase(Locale.ENGLISH), this);
+						
+						if(getUseOldUTF8Behavior()){
+							mysqlEncodingName = "latin1";
+						}
 
 						if (dontCheckServerMatch || !characterSetNamesMatches(mysqlEncodingName)) {
 							execSQL(null, "SET NAMES " + mysqlEncodingName, -1,
@@ -1907,6 +1926,13 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 						}
 					}
 				} else {
+
+					if(getUseOldUTF8Behavior()){
+						execSQL(null, "SET NAMES " + "latin1", -1,
+							null, DEFAULT_RESULT_SET_TYPE,
+							DEFAULT_RESULT_SET_CONCURRENCY, false,
+							this.database, null, false);
+					}
 					String charsetResults = getCharacterSetResults();
 					String mysqlEncodingName = null;
 
@@ -2000,11 +2026,11 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 		} catch(java.nio.charset.UnsupportedCharsetException ucex) {
 			// fallback to String API - for Java 1.4
 			try {
-				byte bbuf[] = new String("\u00a5").getBytes(getEncoding());
+				byte bbuf[] = StringUtils.getBytes("\u00a5", getEncoding());
 				if (bbuf[0] == '\\') {
 					requiresEscapingEncoder = true;
 				} else {
-					bbuf = new String("\u20a9").getBytes(getEncoding());
+					bbuf = StringUtils.getBytes("\u20a9", getEncoding());
 					if (bbuf[0] == '\\') {
 						requiresEscapingEncoder = true;
 					}
@@ -2113,7 +2139,7 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 	 * @throws CommunicationsException
 	 *             DOCUMENT ME!
 	 */
-	protected void createNewIO(boolean isForReconnect)
+	public synchronized void createNewIO(boolean isForReconnect)
 			throws SQLException {
 		// Synchronization Not needed for *new* connections, but defintely for
 		// connections going through fail-over, since we might get the
@@ -2121,354 +2147,278 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 		// cached or still-open server-side prepared statements over
 		// to the backend before we get a chance to re-prepare them...
 		
-		synchronized (this.mutex) {
-			Properties mergedProps  = exposeAsProperties(this.props);
-	
-			long queriesIssuedFailedOverCopy = this.queriesIssuedFailedOver;
-			this.queriesIssuedFailedOver = 0;
+
+		Properties mergedProps  = exposeAsProperties(this.props);
+
+		if (!getHighAvailability()) {
+			connectOneTryOnly(isForReconnect, mergedProps);
 			
+			return;
+		} 
+
+		connectWithRetries(isForReconnect, mergedProps);
+		
+	}
+
+	private void connectWithRetries(boolean isForReconnect,
+			Properties mergedProps) throws SQLException {
+		double timeout = getInitialTimeout();
+		boolean connectionGood = false;
+
+		Exception connectionException = null;
+
+		for (int attemptCount = 0; (attemptCount < getMaxReconnects())
+				&& !connectionGood; attemptCount++) {
 			try {
-				if (!getHighAvailability() && !this.failedOver) {
-					boolean connectionGood = false;
-					Exception connectionNotEstablishedBecause = null;
-					
-					int hostIndex = 0;
-	
-					//
-					// TODO: Eventually, when there's enough metadata
-					// on the server to support it, we should come up
-					// with a smarter way to pick what server to connect
-					// to...perhaps even making it 'pluggable'
-					//
-					if (getRoundRobinLoadBalance()) {
-						hostIndex = getNextRoundRobinHostIndex(getURL(),
-								this.hostList);
-					}
-	
-					for (; hostIndex < this.hostListSize; hostIndex++) {
-	
-						if (hostIndex == 0) {
-							this.hasTriedMasterFlag = true;
-						}
-						
-						try {
-							String newHostPortPair = (String) this.hostList
-									.get(hostIndex);
-	
-							int newPort = 3306;
-	
-							String[] hostPortPair = NonRegisteringDriver
-									.parseHostPortPair(newHostPortPair);
-							String newHost = hostPortPair[NonRegisteringDriver.HOST_NAME_INDEX];
-	
-							if (newHost == null || StringUtils.isEmptyOrWhitespaceOnly(newHost)) {
-								newHost = "localhost";
-							}
-	
-							if (hostPortPair[NonRegisteringDriver.PORT_NUMBER_INDEX] != null) {
-								try {
-									newPort = Integer
-											.parseInt(hostPortPair[NonRegisteringDriver.PORT_NUMBER_INDEX]);
-								} catch (NumberFormatException nfe) {
-									throw SQLError.createSQLException(
-											"Illegal connection port value '"
-													+ hostPortPair[NonRegisteringDriver.PORT_NUMBER_INDEX]
-													+ "'",
-											SQLError.SQL_STATE_INVALID_CONNECTION_ATTRIBUTE, getExceptionInterceptor());
-								}
-							}
-	
-							this.io = new MysqlIO(newHost, newPort, mergedProps,
-									getSocketFactoryClassName(), this,
-									getSocketTimeout(), 
-									this.largeRowSizeThreshold.getValueAsInt());
-		
-							this.io.doHandshake(this.user, this.password,
-									this.database);
-							this.connectionId = this.io.getThreadId();
-							this.isClosed = false;
-	
-							// save state from old connection
-							boolean oldAutoCommit = getAutoCommit();
-							int oldIsolationLevel = this.isolationLevel;
-							boolean oldReadOnly = isReadOnly();
-							String oldCatalog = getCatalog();
-	
-							this.io.setStatementInterceptors(this.statementInterceptors);
-							
-							// Server properties might be different
-							// from previous connection, so initialize
-							// again...
-							initializePropsFromServer();
-	
-							if (isForReconnect) {
-								// Restore state from old connection
-								setAutoCommit(oldAutoCommit);
-	
-								if (this.hasIsolationLevels) {
-									setTransactionIsolation(oldIsolationLevel);
-								}
-	
-								setCatalog(oldCatalog);
-							}
-	
-							if (hostIndex != 0) {
-								setFailedOverState();
-								queriesIssuedFailedOverCopy = 0;
-							} else {
-								this.failedOver = false;
-								queriesIssuedFailedOverCopy = 0;
-	
-								if (this.hostListSize > 1) {
-									setReadOnlyInternal(false);
-								} else {
-									setReadOnlyInternal(oldReadOnly);
-								}
-							}
-	
-							connectionGood = true;
-							
-							break; // low-level connection succeeded
-						} catch (Exception EEE) {
-							if (this.io != null) {
-								this.io.forceClose();
-							}
-	
-							connectionNotEstablishedBecause = EEE;
-							
-							connectionGood = false;
-							
-							if (EEE instanceof SQLException) {
-								SQLException sqlEx = (SQLException)EEE;
-							
-								String sqlState = sqlEx.getSQLState();
-		
-								// If this isn't a communications failure, it will probably never succeed, so
-								// give up right here and now ....
-								if ((sqlState == null)
-										|| !sqlState
-												.equals(SQLError.SQL_STATE_COMMUNICATION_LINK_FAILURE)) {
-									throw sqlEx;
-								}
-							}
-	
-							// Check next host, it might be up...
-							if (getRoundRobinLoadBalance()) {
-								hostIndex = getNextRoundRobinHostIndex(getURL(),
-										this.hostList) - 1 /* incremented by for loop next time around */;
-							} else if ((this.hostListSize - 1) == hostIndex) {
-								throw SQLError.createCommunicationsException(this,
-										(this.io != null) ? this.io
-												.getLastPacketSentTimeMs() : 0,
-										(this.io != null) ? this.io
-												 .getLastPacketReceivedTimeMs() : 0,
-												EEE, getExceptionInterceptor());
-							}
-						}
-					}
-					
-					if (!connectionGood) {
-						// We've really failed!
-						SQLException chainedEx = SQLError.createSQLException(
-								Messages.getString("Connection.UnableToConnect"),
-								SQLError.SQL_STATE_UNABLE_TO_CONNECT_TO_DATASOURCE, getExceptionInterceptor());
-						chainedEx.initCause(connectionNotEstablishedBecause);
-						
-						throw chainedEx;
-					}
-				} else {
-					double timeout = getInitialTimeout();
-					boolean connectionGood = false;
-	
-					Exception connectionException = null;
-	
-					int hostIndex = 0;
-	
-					if (getRoundRobinLoadBalance()) {
-						hostIndex = getNextRoundRobinHostIndex(getURL(),
-								this.hostList);
-					}
-	
-					for (; (hostIndex < this.hostListSize) && !connectionGood; hostIndex++) {
-						if (hostIndex == 0) {
-							this.hasTriedMasterFlag = true;
-						}
-						
-						if (this.preferSlaveDuringFailover && hostIndex == 0) {
-							hostIndex++;
-						}
-	
-						for (int attemptCount = 0; (attemptCount < getMaxReconnects())
-								&& !connectionGood; attemptCount++) {
-							try {
-								if (this.io != null) {
-									this.io.forceClose();
-								}
-	
-								String newHostPortPair = (String) this.hostList
-										.get(hostIndex);
-	
-								int newPort = 3306;
-	
-								String[] hostPortPair = NonRegisteringDriver
-										.parseHostPortPair(newHostPortPair);
-								String newHost = hostPortPair[NonRegisteringDriver.HOST_NAME_INDEX];
-	
-								if (newHost == null || StringUtils.isEmptyOrWhitespaceOnly(newHost)) {
-									newHost = "localhost";
-								}
-	
-								if (hostPortPair[NonRegisteringDriver.PORT_NUMBER_INDEX] != null) {
-									try {
-										newPort = Integer
-												.parseInt(hostPortPair[NonRegisteringDriver.PORT_NUMBER_INDEX]);
-									} catch (NumberFormatException nfe) {
-										throw SQLError.createSQLException(
-												"Illegal connection port value '"
-														+ hostPortPair[NonRegisteringDriver.PORT_NUMBER_INDEX]
-														+ "'",
-												SQLError.SQL_STATE_INVALID_CONNECTION_ATTRIBUTE, getExceptionInterceptor());
-									}
-								}
-	
-								this.io = new MysqlIO(newHost, newPort,
-										mergedProps, getSocketFactoryClassName(),
-										this, getSocketTimeout(),
-										this.largeRowSizeThreshold.getValueAsInt());
-								this.io.doHandshake(this.user, this.password,
-										this.database);
-								pingInternal(false, 0);
-								this.connectionId = this.io.getThreadId();
-								this.isClosed = false;
-	
-								// save state from old connection
-								boolean oldAutoCommit = getAutoCommit();
-								int oldIsolationLevel = this.isolationLevel;
-								boolean oldReadOnly = isReadOnly();
-								String oldCatalog = getCatalog();
-	
-								this.io.setStatementInterceptors(this.statementInterceptors);
-								
-								// Server properties might be different
-								// from previous connection, so initialize
-								// again...
-								initializePropsFromServer();
-	
-								if (isForReconnect) {
-									// Restore state from old connection
-									setAutoCommit(oldAutoCommit);
-	
-									if (this.hasIsolationLevels) {
-										setTransactionIsolation(oldIsolationLevel);
-									}
-	
-									setCatalog(oldCatalog);
-								}
-	
-								connectionGood = true;
-	
-								if (hostIndex != 0) {
-									setFailedOverState();
-									queriesIssuedFailedOverCopy = 0;
-								} else {
-									this.failedOver = false;
-									queriesIssuedFailedOverCopy = 0;
-	
-									if (this.hostListSize > 1) {
-										setReadOnlyInternal(false);
-									} else {
-										setReadOnlyInternal(oldReadOnly);
-									}
-								}
-	
-								break;
-							} catch (Exception EEE) {
-								connectionException = EEE;
-								connectionGood = false;
-								
-								// Check next host, it might be up...
-								if (getRoundRobinLoadBalance()) {
-									hostIndex = getNextRoundRobinHostIndex(getURL(),
-											this.hostList) - 1 /* incremented by for loop next time around */;
-								}
-							}
-	
-							if (connectionGood) {
-								break;
-							}
-	
-							if (attemptCount > 0) {
-								try {
-									Thread.sleep((long) timeout * 1000);
-								} catch (InterruptedException IE) {
-									// ignore
-								}
-							}
-						} // end attempts for a single host
-					} // end iterator for list of hosts
-	
-					if (!connectionGood) {
-						// We've really failed!
-						SQLException chainedEx = SQLError.createSQLException(
-								Messages.getString("Connection.UnableToConnectWithRetries",
-										new Object[] {new Integer(getMaxReconnects())}),
-								SQLError.SQL_STATE_UNABLE_TO_CONNECT_TO_DATASOURCE, getExceptionInterceptor());
-						chainedEx.initCause(connectionException);
-						
-						throw chainedEx;
-					}
+				if (this.io != null) {
+					this.io.forceClose();
 				}
+
+				coreConnect(mergedProps);
+				pingInternal(false, 0);
+				
+				boolean oldAutoCommit;
+				int oldIsolationLevel;
+				boolean oldReadOnly;
+				String oldCatalog;
+				
+				synchronized (this) {
+					this.connectionId = this.io.getThreadId();
+					this.isClosed = false;
+
+					// save state from old connection
+					oldAutoCommit = getAutoCommit();
+					oldIsolationLevel = this.isolationLevel;
+					oldReadOnly = isReadOnly();
+					oldCatalog = getCatalog();
 	
-				if (getParanoid() && !getHighAvailability()
-						&& (this.hostListSize <= 1)) {
-					this.password = null;
-					this.user = null;
+					this.io.setStatementInterceptors(this.statementInterceptors);
 				}
-	
+				
+				// Server properties might be different
+				// from previous connection, so initialize
+				// again...
+				initializePropsFromServer();
+
 				if (isForReconnect) {
-					//
-					// Retrieve any 'lost' prepared statements if re-connecting
-					//
-					Iterator statementIter = this.openStatements.values()
-							.iterator();
-	
-					//
-					// We build a list of these outside the map of open statements,
-					// because
-					// in the process of re-preparing, we might end up having to
-					// close
-					// a prepared statement, thus removing it from the map, and
-					// generating
-					// a ConcurrentModificationException
-					//
-					Stack serverPreparedStatements = null;
-	
-					while (statementIter.hasNext()) {
-						Object statementObj = statementIter.next();
-	
-						if (statementObj instanceof ServerPreparedStatement) {
-							if (serverPreparedStatements == null) {
-								serverPreparedStatements = new Stack();
-							}
-	
-							serverPreparedStatements.add(statementObj);
-						}
+					// Restore state from old connection
+					setAutoCommit(oldAutoCommit);
+
+					if (this.hasIsolationLevels) {
+						setTransactionIsolation(oldIsolationLevel);
 					}
-	
-					if (serverPreparedStatements != null) {
-						while (!serverPreparedStatements.isEmpty()) {
-							((ServerPreparedStatement) serverPreparedStatements
-									.pop()).rePrepare();
-						}
+
+					setCatalog(oldCatalog);
+					setReadOnly(oldReadOnly);
+				}
+
+				connectionGood = true;
+
+				break;
+			} catch (Exception EEE) {
+				connectionException = EEE;
+				connectionGood = false;
+			}
+
+				if (connectionGood) {
+					break;
+				}
+
+				if (attemptCount > 0) {
+					try {
+						Thread.sleep((long) timeout * 1000);
+					} catch (InterruptedException IE) {
+						// ignore
 					}
 				}
-			} finally {
-				this.queriesIssuedFailedOver = queriesIssuedFailedOverCopy;
+			} // end attempts for a single host
+
+		if (!connectionGood) {
+			// We've really failed!
+			SQLException chainedEx = SQLError.createSQLException(
+					Messages.getString("Connection.UnableToConnectWithRetries",
+							new Object[] {Integer.valueOf(getMaxReconnects())}),
+					SQLError.SQL_STATE_UNABLE_TO_CONNECT_TO_DATASOURCE, getExceptionInterceptor());
+			chainedEx.initCause(connectionException);
+			
+			throw chainedEx;
+		}
+
+		if (getParanoid() && !getHighAvailability()) {
+			this.password = null;
+			this.user = null;
+		}
+
+		if (isForReconnect) {
+			//
+			// Retrieve any 'lost' prepared statements if re-connecting
+			//
+			Iterator statementIter = this.openStatements.values()
+					.iterator();
+
+			//
+			// We build a list of these outside the map of open statements,
+			// because
+			// in the process of re-preparing, we might end up having to
+			// close
+			// a prepared statement, thus removing it from the map, and
+			// generating
+			// a ConcurrentModificationException
+			//
+			Stack serverPreparedStatements = null;
+
+			while (statementIter.hasNext()) {
+				Object statementObj = statementIter.next();
+
+				if (statementObj instanceof ServerPreparedStatement) {
+					if (serverPreparedStatements == null) {
+						serverPreparedStatements = new Stack();
+					}
+
+					serverPreparedStatements.add(statementObj);
+				}
+			}
+
+			if (serverPreparedStatements != null) {
+				while (!serverPreparedStatements.isEmpty()) {
+					((ServerPreparedStatement) serverPreparedStatements
+							.pop()).rePrepare();
+				}
 			}
 		}
 	}
 
-	private void createPreparedStatementCaches() {
+	private void coreConnect(Properties mergedProps) throws SQLException,
+			IOException {
+		int newPort = 3306;
+		String newHost = "localhost";
+		
+		String protocol = mergedProps.getProperty(NonRegisteringDriver.PROTOCOL_PROPERTY_KEY);
+		
+		if (protocol != null) {
+			// "new" style URL
+
+			if ("tcp".equalsIgnoreCase(protocol)) {
+				newHost = normalizeHost(mergedProps.getProperty(NonRegisteringDriver.HOST_PROPERTY_KEY));
+				newPort = parsePortNumber(mergedProps.getProperty(NonRegisteringDriver.PORT_PROPERTY_KEY, "3306"));
+			} else if ("pipe".equalsIgnoreCase(protocol)) {
+				setSocketFactoryClassName(NamedPipeSocketFactory.class.getName());
+				
+				String path = mergedProps.getProperty(NonRegisteringDriver.PATH_PROPERTY_KEY);
+				
+				if (path != null) {
+					mergedProps.setProperty(NamedPipeSocketFactory.NAMED_PIPE_PROP_NAME, path);
+				}
+			} else {
+				// normalize for all unknown protocols
+				newHost = normalizeHost(mergedProps.getProperty(NonRegisteringDriver.HOST_PROPERTY_KEY));
+				newPort = parsePortNumber(mergedProps.getProperty(NonRegisteringDriver.PORT_PROPERTY_KEY, "3306"));
+			}
+		} else {
+		
+			String[] parsedHostPortPair = NonRegisteringDriver
+					.parseHostPortPair(this.hostPortPair);
+			newHost = parsedHostPortPair[NonRegisteringDriver.HOST_NAME_INDEX];
+
+			newHost = normalizeHost(newHost);
+
+			if (parsedHostPortPair[NonRegisteringDriver.PORT_NUMBER_INDEX] != null) {
+				newPort = parsePortNumber(parsedHostPortPair[NonRegisteringDriver.PORT_NUMBER_INDEX]);
+			}
+		}
+
+		this.port = newPort;
+		this.host = newHost;
+		
+		this.io = new MysqlIO(newHost, newPort,
+				mergedProps, getSocketFactoryClassName(),
+				getProxy(), getSocketTimeout(),
+				this.largeRowSizeThreshold.getValueAsInt());
+		this.io.doHandshake(this.user, this.password,
+				this.database);
+	}
+
+	private String normalizeHost(String host) {
+		if (host == null || StringUtils.isEmptyOrWhitespaceOnly(host)) {
+			return "localhost";
+		}
+		
+		return host;
+	}
+	private int parsePortNumber(String portAsString)
+			throws SQLException {
+		int portNumber = 3306;
+		try {
+			portNumber = Integer
+					.parseInt(portAsString);
+		} catch (NumberFormatException nfe) {
+			throw SQLError.createSQLException(
+					"Illegal connection port value '"
+							+ portAsString
+							+ "'",
+					SQLError.SQL_STATE_INVALID_CONNECTION_ATTRIBUTE, getExceptionInterceptor());
+		}
+		return portNumber;
+	}
+
+	private void connectOneTryOnly(boolean isForReconnect,
+			Properties mergedProps) throws SQLException {
+		Exception connectionNotEstablishedBecause = null;
+
+		try {
+			
+			coreConnect(mergedProps);
+			this.connectionId = this.io.getThreadId();
+			this.isClosed = false;
+
+			// save state from old connection
+			boolean oldAutoCommit = getAutoCommit();
+			int oldIsolationLevel = this.isolationLevel;
+			boolean oldReadOnly = isReadOnly();
+			String oldCatalog = getCatalog();
+
+			this.io.setStatementInterceptors(this.statementInterceptors);
+			
+			// Server properties might be different
+			// from previous connection, so initialize
+			// again...
+			initializePropsFromServer();
+
+			if (isForReconnect) {
+				// Restore state from old connection
+				setAutoCommit(oldAutoCommit);
+
+				if (this.hasIsolationLevels) {
+					setTransactionIsolation(oldIsolationLevel);
+				}
+
+				setCatalog(oldCatalog);
+				
+				setReadOnly(oldReadOnly);
+			}
+			return;
+			
+		} catch (Exception EEE) {
+			if (this.io != null) {
+				this.io.forceClose();
+			}
+
+			connectionNotEstablishedBecause = EEE;
+
+			if (EEE instanceof SQLException) {
+				throw (SQLException)EEE;
+			}
+			
+			SQLException chainedEx = SQLError.createSQLException(
+					Messages.getString("Connection.UnableToConnect"),
+					SQLError.SQL_STATE_UNABLE_TO_CONNECT_TO_DATASOURCE, getExceptionInterceptor());
+			chainedEx.initCause(connectionNotEstablishedBecause);
+			
+			throw chainedEx;
+		}
+	}
+
+	private synchronized void createPreparedStatementCaches() {
 		int cacheSize = getPreparedStatementCacheSize();
 		
 		this.cachedPreparedStatementParams = new HashMap(cacheSize);
@@ -2533,7 +2483,7 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 			int resultSetConcurrency) throws SQLException {
 		checkClosed();
 
-		StatementImpl stmt = new com.mysql.jdbc.StatementImpl(this, this.database);
+		StatementImpl stmt = new StatementImpl(getLoadBalanceSafeProxy(), this.database);
 		stmt.setResultSetType(resultSetType);
 		stmt.setResultSetConcurrency(resultSetConcurrency);
 
@@ -2557,11 +2507,11 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 		return createStatement(resultSetType, resultSetConcurrency);
 	}
 
-	protected void dumpTestcaseQuery(String query) {
+	public void dumpTestcaseQuery(String query) {
 		System.err.println(query);
 	}
 
-	protected Connection duplicate() throws SQLException {
+	public Connection duplicate() throws SQLException {
 		return new ConnectionImpl(	this.origHostToConnectTo, 
 				this.origPortToConnectTo,
 				this.props,
@@ -2612,7 +2562,7 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 	// resultSetConcurrency, streamResults, queryIsSelectOnly, catalog,
 	// unpackFields);
 	// }
-	ResultSetInternalMethods execSQL(StatementImpl callingStatement, String sql, int maxRows,
+	public ResultSetInternalMethods execSQL(StatementImpl callingStatement, String sql, int maxRows,
 			Buffer packet, int resultSetType, int resultSetConcurrency,
 			boolean streamResults, String catalog,
 			Field[] cachedMetadata) throws SQLException {
@@ -2621,7 +2571,7 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 				catalog, cachedMetadata, false);
 	}
 
-	ResultSetInternalMethods execSQL(StatementImpl callingStatement, String sql, int maxRows,
+	public synchronized ResultSetInternalMethods execSQL(StatementImpl callingStatement, String sql, int maxRows,
 			Buffer packet, int resultSetType, int resultSetConcurrency,
 			boolean streamResults, String catalog,
 			Field[] cachedMetadata,
@@ -2631,133 +2581,109 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 		// issued queriesBeforeRetryMaster queries since
 		// we failed over
 		//
-		synchronized (this.mutex) {
-			long queryStartTime = 0;
 
-			int endOfQueryPacketPosition = 0;
+		long queryStartTime = 0;
 
-			if (packet != null) {
-				endOfQueryPacketPosition = packet.getPosition();
-			}
+		int endOfQueryPacketPosition = 0;
 
-			if (getGatherPerformanceMetrics()) {
-				queryStartTime = System.currentTimeMillis();
-			}
+		if (packet != null) {
+			endOfQueryPacketPosition = packet.getPosition();
+		}
 
-			this.lastQueryFinishedTime = 0; // we're busy!
+		if (getGatherPerformanceMetrics()) {
+			queryStartTime = System.currentTimeMillis();
+		}
 
-			if (this.failedOver && this.autoCommit && !isBatch) {
-				if (shouldFallBack() && !this.executingFailoverReconnect) {
-					try {
-						this.executingFailoverReconnect = true;
+		this.lastQueryFinishedTime = 0; // we're busy!
 
-						createNewIO(true);
-
-						String connectedHost = this.io.getHost();
-
-						if ((connectedHost != null)
-								&& this.hostList.get(0).equals(connectedHost)) {
-							this.failedOver = false;
-							this.queriesIssuedFailedOver = 0;
-							setReadOnlyInternal(false);
-						}
-					} finally {
-						this.executingFailoverReconnect = false;
-					}
-				}
-			}
-
-			if ((getHighAvailability() || this.failedOver)
-					&& (this.autoCommit || getAutoReconnectForPools())
-					&& this.needsPing && !isBatch) {
-				try {
-					pingInternal(false, 0);
-
-					this.needsPing = false;
-				} catch (Exception Ex) {
-					createNewIO(true);
-				}
-			}
-
+		if ((getHighAvailability())
+				&& (this.autoCommit || getAutoReconnectForPools())
+				&& this.needsPing && !isBatch) {
 			try {
-				if (packet == null) {
-					String encoding = null;
+				pingInternal(false, 0);
 
-					if (getUseUnicode()) {
-						encoding = getEncoding();
-					}
+				this.needsPing = false;
+			} catch (Exception Ex) {
+				createNewIO(true);
+			}
+		}
 
-					return this.io.sqlQueryDirect(callingStatement, sql,
-							encoding, null, maxRows, resultSetType,
-							resultSetConcurrency, streamResults, catalog,
-							cachedMetadata);
+		try {
+			if (packet == null) {
+				String encoding = null;
+
+				if (getUseUnicode()) {
+					encoding = getEncoding();
 				}
 
-				return this.io.sqlQueryDirect(callingStatement, null, null,
-						packet, maxRows, resultSetType,
+				return this.io.sqlQueryDirect(callingStatement, sql,
+						encoding, null, maxRows, resultSetType,
 						resultSetConcurrency, streamResults, catalog,
 						cachedMetadata);
-			} catch (java.sql.SQLException sqlE) {
-				// don't clobber SQL exceptions
+			}
 
-				if (getDumpQueriesOnException()) {
-					String extractedSql = extractSqlFromPacket(sql, packet,
-							endOfQueryPacketPosition);
-					StringBuffer messageBuf = new StringBuffer(extractedSql
-							.length() + 32);
-					messageBuf
-							.append("\n\nQuery being executed when exception was thrown:\n\n");
-					messageBuf.append(extractedSql);
+			return this.io.sqlQueryDirect(callingStatement, null, null,
+					packet, maxRows, resultSetType,
+					resultSetConcurrency, streamResults, catalog,
+					cachedMetadata);
+		} catch (java.sql.SQLException sqlE) {
+			// don't clobber SQL exceptions
 
-					sqlE = appendMessageToException(sqlE, messageBuf.toString(), getExceptionInterceptor());
+			if (getDumpQueriesOnException()) {
+				String extractedSql = extractSqlFromPacket(sql, packet,
+						endOfQueryPacketPosition);
+				StringBuffer messageBuf = new StringBuffer(extractedSql
+						.length() + 32);
+				messageBuf
+						.append("\n\nQuery being executed when exception was thrown:\n");
+				messageBuf.append(extractedSql);
+				messageBuf.append("\n\n");
+
+				sqlE = appendMessageToException(sqlE, messageBuf.toString(), getExceptionInterceptor());
+			}
+
+			if ((getHighAvailability())) {
+				this.needsPing = true;
+			} else {
+				String sqlState = sqlE.getSQLState();
+
+				if ((sqlState != null)
+						&& sqlState
+								.equals(SQLError.SQL_STATE_COMMUNICATION_LINK_FAILURE)) {
+					cleanup(sqlE);
 				}
+			}
 
-				if ((getHighAvailability() || this.failedOver)) {
-					this.needsPing = true;
-				} else {
-					String sqlState = sqlE.getSQLState();
+			throw sqlE;
+		} catch (Exception ex) {
+			if (getHighAvailability()) {
+				this.needsPing = true;
+			} else if (ex instanceof IOException) {
+				cleanup(ex);
+			}
 
-					if ((sqlState != null)
-							&& sqlState
-									.equals(SQLError.SQL_STATE_COMMUNICATION_LINK_FAILURE)) {
-						cleanup(sqlE);
-					}
-				}
+			SQLException sqlEx = SQLError.createSQLException(
+					Messages.getString("Connection.UnexpectedException"),
+					SQLError.SQL_STATE_GENERAL_ERROR, getExceptionInterceptor());
+			sqlEx.initCause(ex);
+			
+			throw sqlEx;
+		} finally {
+			if (getMaintainTimeStats()) {
+				this.lastQueryFinishedTime = System.currentTimeMillis();
+			}
 
-				throw sqlE;
-			} catch (Exception ex) {
-				if ((getHighAvailability() || this.failedOver)) {
-					this.needsPing = true;
-				} else if (ex instanceof IOException) {
-					cleanup(ex);
-				}
 
-				SQLException sqlEx = SQLError.createSQLException(
-						Messages.getString("Connection.UnexpectedException"),
-						SQLError.SQL_STATE_GENERAL_ERROR, getExceptionInterceptor());
-				sqlEx.initCause(ex);
-				
-				throw sqlEx;
-			} finally {
-				if (getMaintainTimeStats()) {
-					this.lastQueryFinishedTime = System.currentTimeMillis();
-				}
+			if (getGatherPerformanceMetrics()) {
+				long queryTime = System.currentTimeMillis()
+						- queryStartTime;
 
-				if (this.failedOver) {
-					this.queriesIssuedFailedOver++;
-				}
-
-				if (getGatherPerformanceMetrics()) {
-					long queryTime = System.currentTimeMillis()
-							- queryStartTime;
-
-					registerQueryExecutionTime(queryTime);
-				}
+				registerQueryExecutionTime(queryTime);
 			}
 		}
 	}
 
-	protected String extractSqlFromPacket(String possibleSqlQuery,
+	public String extractSqlFromPacket(String possibleSqlQuery,
 			Buffer queryPacket, int endOfQueryPacketPosition)
 			throws SQLException {
 
@@ -2787,7 +2713,7 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 				truncated = true;
 			}
 
-			extractedSql = new String(queryPacket.getByteBuffer(), 5,
+			extractedSql = StringUtils.toString(queryPacket.getByteBuffer(), 5,
 					(extractPosition - 5));
 
 			if (truncated) {
@@ -2799,19 +2725,13 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 
 	}
 
-	/**
-	 * DOCUMENT ME!
-	 * 
-	 * @throws Throwable
-	 *             DOCUMENT ME!
-	 */
 	protected void finalize() throws Throwable {
 		cleanup(null);
 		
 		super.finalize();
 	}
 
-	protected StringBuffer generateConnectionCommentBlock(StringBuffer buf) {
+	public StringBuffer generateConnectionCommentBlock(StringBuffer buf) {
 		buf.append("/* conn id ");
 		buf.append(getId());
 		buf.append(" clock: ");
@@ -2841,7 +2761,7 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 	 *                if an error occurs
 	 * @see setAutoCommit
 	 */
-	public boolean getAutoCommit() throws SQLException {
+	public synchronized boolean getAutoCommit() throws SQLException {
 		return this.autoCommit;
 	}
 
@@ -2849,7 +2769,7 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 	 * Optimization to only use one calendar per-session, or calculate it for
 	 * each call, depending on user configuration
 	 */
-	protected Calendar getCalendarInstanceForSessionOrNew() {
+	public Calendar getCalendarInstanceForSessionOrNew() {
 		if (getDynamicCalendars()) {
 			return Calendar.getInstance();
 		}
@@ -2868,14 +2788,14 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 	 * @exception SQLException
 	 *                if a database access error occurs
 	 */
-	public String getCatalog() throws SQLException {
+	public synchronized String getCatalog() throws SQLException {
 		return this.database;
 	}
 
 	/**
 	 * @return Returns the characterSetMetadata.
 	 */
-	protected String getCharacterSetMetadata() {
+	public synchronized String getCharacterSetMetadata() {
 		return this.characterSetMetadata;
 	}
 
@@ -2887,7 +2807,7 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 	 *            the encoding name to retrieve
 	 * @return a character converter, or null if one couldn't be mapped.
 	 */
-	SingleByteCharsetConverter getCharsetConverter(
+	public SingleByteCharsetConverter getCharsetConverter(
 			String javaEncodingName) throws SQLException {
 		if (javaEncodingName == null) {
 			return null;
@@ -2943,7 +2863,7 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 	 * @throws SQLException
 	 *             if the character set index isn't known by the driver
 	 */
-	protected String getCharsetNameForIndex(int charsetIndex)
+	public String getCharsetNameForIndex(int charsetIndex)
 			throws SQLException {
 		String charsetName = null;
 
@@ -2985,11 +2905,11 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 	 * 
 	 * @return Returns the defaultTimeZone.
 	 */
-	protected TimeZone getDefaultTimeZone() {
+	public TimeZone getDefaultTimeZone() {
 		return this.defaultTimeZone;
 	}
 
-	protected String getErrorMessageEncoding() {
+	public String getErrorMessageEncoding() {
 		return errorMessageEncoding;
 	}
 
@@ -3000,7 +2920,7 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 		return java.sql.ResultSet.CLOSE_CURSORS_AT_COMMIT;
 	}
 
-	long getId() {
+	public long getId() {
 		return this.connectionId;
 	}
 
@@ -3012,7 +2932,7 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 	 * @return number of ms that this connection has been idle, 0 if the driver
 	 *         is busy retrieving results.
 	 */
-	public long getIdleFor() {
+	public synchronized long getIdleFor() {
 		if (this.lastQueryFinishedTime == 0) {
 			return 0;
 		}
@@ -3030,7 +2950,7 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 	 * @throws SQLException
 	 *             if the connection is closed.
 	 */
-	protected MysqlIO getIO() throws SQLException {
+	public MysqlIO getIO() throws SQLException {
 		if ((this.io == null) || this.isClosed) {
 			throw SQLError.createSQLException(
 					"Operation not allowed on closed connection",
@@ -3052,12 +2972,17 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 		return this.log;
 	}
 
-	protected int getMaxBytesPerChar(String javaCharsetName)
+	public int getMaxBytesPerChar(String javaCharsetName)
 	throws SQLException {
 		// TODO: Check if we can actually run this query at this point in time
 		String charset = CharsetMapping.getMysqlEncodingForJavaEncoding(
 				javaCharsetName, this);
 		
+		if ((this.io.serverCharsetIndex == 33) && (versionMeetsMinimum(5, 5, 3)) && (javaCharsetName.equalsIgnoreCase("UTF-8"))) {
+			//Avoid UTF8mb4
+			charset = "utf8";
+		}
+
 		if (versionMeetsMinimum(4, 1, 0)) {
 			Map mapToCheck = null;
 			
@@ -3079,7 +3004,7 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 		
 							while (rs.next()) {
 								this.charsetToNumBytesMap.put(rs.getString("Charset"),
-										Constants.integerValueOf(rs.getInt("Maxlen")));
+										Integer.valueOf(rs.getInt("Maxlen")));
 							}
 		
 							rs.close();
@@ -3103,6 +3028,9 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 				}
 			}
 		
+			//Pin down the case when user with 5.5.3 server actually uses 3 byte UTF8
+			//We have already overridden users preference by mapping UTF8 to UTF8mb4
+			
 			Integer mbPerChar = (Integer) mapToCheck.get(charset);
 		
 			if (mbPerChar != null) {
@@ -3134,10 +3062,10 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 			checkClosed();	
 		}
 		
-		return com.mysql.jdbc.DatabaseMetaData.getInstance(this, this.database, checkForInfoSchema);
+		return com.mysql.jdbc.DatabaseMetaData.getInstance(getLoadBalanceSafeProxy(), this.database, checkForInfoSchema);
 	}
 
-	protected java.sql.Statement getMetadataSafeStatement() throws SQLException {
+	public java.sql.Statement getMetadataSafeStatement() throws SQLException {
 		java.sql.Statement stmt = createStatement();
 
 		if (stmt.getMaxRows() != 0) {
@@ -3154,28 +3082,11 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 	}
 
 	/**
-	 * Returns the Mutex all queries are locked against
-	 * 
-	 * @return DOCUMENT ME!
-	 * @throws SQLException
-	 *             DOCUMENT ME!
-	 */
-	Object getMutex() throws SQLException {
-		if (this.io == null) {
-			throwConnectionClosedException();
-		}
-
-		reportMetricsIfNeeded();
-
-		return this.mutex;
-	}
-
-	/**
 	 * Returns the packet buffer size the MySQL server reported upon connection
 	 * 
 	 * @return DOCUMENT ME!
 	 */
-	int getNetBufferLength() {
+	public int getNetBufferLength() {
 		return this.netBufferLength;
 	}
 
@@ -3192,15 +3103,15 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 		}
 	}
 
-	int getServerMajorVersion() {
+	public int getServerMajorVersion() {
 		return this.io.getServerMajorVersion();
 	}
 
-	int getServerMinorVersion() {
+	public int getServerMinorVersion() {
 		return this.io.getServerMinorVersion();
 	}
 
-	int getServerSubMinorVersion() {
+	public int getServerSubMinorVersion() {
 		return this.io.getServerSubMinorVersion();
 	}
 
@@ -3214,7 +3125,7 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 	}
 	
 	
-	String getServerVariable(String variableName) {
+	public String getServerVariable(String variableName) {
 		if (this.serverVariables != null) {
 			return (String) this.serverVariables.get(variableName);
 		}
@@ -3222,11 +3133,11 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 		return null;
 	}
 
-	String getServerVersion() {
+	public String getServerVersion() {
 		return this.io.getServerVersion();
 	}
 
-	protected Calendar getSessionLockedCalendar() {
+	public Calendar getSessionLockedCalendar() {
 	
 		return this.sessionCalendar;
 	}
@@ -3238,7 +3149,7 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 	 * @exception SQLException
 	 *                if a database access error occurs
 	 */
-	public int getTransactionIsolation() throws SQLException {
+	public synchronized int getTransactionIsolation() throws SQLException {
 
 		if (this.hasIsolationLevels && !getUseLocalSessionState()) {
 			java.sql.Statement stmt = null;
@@ -3327,15 +3238,15 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 		return this.typeMap;
 	}
 
-	String getURL() {
+	public String getURL() {
 		return this.myURL;
 	}
 
-	String getUser() {
+	public String getUser() {
 		return this.user;
 	}
 
-	protected Calendar getUtcCalendar() {
+	public Calendar getUtcCalendar() {
 		return this.utcCalendar;
 	}
 	
@@ -3364,7 +3275,7 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 		return this.hasTriedMasterFlag;
 	}
 
-	protected void incrementNumberOfPreparedExecutes() {
+	public void incrementNumberOfPreparedExecutes() {
 		if (getGatherPerformanceMetrics()) {
 			this.numberOfPreparedExecutes++;
 
@@ -3375,13 +3286,13 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 		}
 	}
 
-	protected void incrementNumberOfPrepares() {
+	public void incrementNumberOfPrepares() {
 		if (getGatherPerformanceMetrics()) {
 			this.numberOfPrepares++;
 		}
 	}
 
-	protected void incrementNumberOfResultSetsCreated() {
+	public void incrementNumberOfResultSetsCreated() {
 		if (getGatherPerformanceMetrics()) {
 			this.numberOfResultSetsCreated++;
 		}
@@ -3412,7 +3323,7 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 		this.log = LogFactory.getLogger(getLogger(), LOGGER_INSTANCE_NAME, getExceptionInterceptor());
 
 		if (getProfileSql() || getUseUsageAdvisor()) {
-			this.eventSink = ProfilerEventHandlerFactory.getInstance(this);
+			this.eventSink = ProfilerEventHandlerFactory.getInstance(getLoadBalanceSafeProxy());
 		}
 
 		if (getCachePreparedStatements()) {
@@ -3459,15 +3370,6 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 			this.connectionLifecycleInterceptors = Util.loadExtensions(this, this.props, 
 					connectionInterceptorClasses, 
 					"Connection.badLifecycleInterceptor", getExceptionInterceptor());
-			
-			Iterator iter = this.connectionLifecycleInterceptors.iterator();
-			
-			new IterateBlock(iter) {
-				void forEach(Object each) throws SQLException {
-					// TODO: Fully initialize, or continue on error?
-					((ConnectionLifecycleInterceptor)each).init(ConnectionImpl.this, props);
-				}
-			}.doForAll();
 		}
 		
 		setSessionVariables();
@@ -3494,8 +3396,6 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 				// don't work on these versions
 			}
 		}
-
-		this.serverVariables.clear();
 
 		//
 		// If version is greater than 3.21.22 get the server
@@ -3699,7 +3599,7 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 					.get(variableName));
 		} catch (NumberFormatException nfe) {
 			getLog().logWarn(Messages.getString("Connection.BadValueInServerVariables", new Object[] {variableName, 
-					this.serverVariables.get(variableName), new Integer(fallbackValue)}));
+					this.serverVariables.get(variableName), Integer.valueOf(fallbackValue)}));
 			
 			return fallbackValue;
 		}
@@ -3767,7 +3667,7 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 		return overrideDefaultAutocommit;
 	}
 
-	protected boolean isClientTzUTC() {
+	public boolean isClientTzUTC() {
 		return this.isClientTzUTC;
 	}
 
@@ -3780,7 +3680,7 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 		return this.isClosed;
 	}
 
-	protected boolean isCursorFetchEnabled() throws SQLException {
+	public boolean isCursorFetchEnabled() throws SQLException {
 		return (versionMeetsMinimum(5, 0, 2) && getUseCursorFetch());
 	}
 
@@ -3796,7 +3696,7 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 	 * the list.
 	 */
 	public synchronized boolean isMasterConnection() {
-		return !this.failedOver;
+		return false; // handled higher up
 	}
 
 	/**
@@ -3809,7 +3709,7 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 		return this.noBackslashEscapes;
 	}
 
-	boolean isReadInfoMsgEnabled() {
+	public boolean isReadInfoMsgEnabled() {
 		return this.readInfoMsg;
 	}
 
@@ -3826,7 +3726,7 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 		return this.readOnly;
 	}
 
-	protected boolean isRunningOnJDK13() {
+	public boolean isRunningOnJDK13() {
 		return this.isRunningOnJDK13;
 	}
 
@@ -3877,7 +3777,7 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 		return false;	
 	}
 
-	protected boolean isServerTzUTC() {
+	public boolean isServerTzUTC() {
 		return this.isServerTzUTC;
 	}
 
@@ -3890,10 +3790,12 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 	 * @throws SQLException
 	 *             if the 'SHOW VARIABLES' query fails for any reason.
 	 */
+	@SuppressWarnings({ "unchecked", "rawtypes" })
 	private void loadServerVariables() throws SQLException {
 
 		if (getCacheServerConfiguration()) {
 			synchronized (serverConfigByUrl) {
+				@SuppressWarnings("rawtypes")
 				Map cachedVariableMap = (Map) serverConfigByUrl.get(getURL());
 
 				if (cachedVariableMap != null) {
@@ -3958,13 +3860,18 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 					+ " OR Variable_name = 'init_connect'";
 			}
 			
-			results = stmt.executeQuery(query);
+			this.serverVariables = new HashMap();
 
+			results = stmt.executeQuery(query);
+			
 			while (results.next()) {
 				this.serverVariables.put(results.getString(1), results
 						.getString(2));
 			}
 
+			results.close();
+			results = null;
+			
 			if (versionMeetsMinimum(5, 0, 2)) {
 				results = stmt.executeQuery(versionComment + "SELECT @@session.auto_increment_increment");
 				
@@ -3976,10 +3883,10 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 			if (getCacheServerConfiguration()) {
 				synchronized (serverConfigByUrl) {
 					serverConfigByUrl.put(getURL(), this.serverVariables);
+					
+					this.usingCachedConfig = true;
 				}
 			}
-			
-			
 		} catch (SQLException e) {
 			throw e;
 		} finally {
@@ -4022,16 +3929,14 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 	 * @param stmt
 	 *            DOCUMENT ME!
 	 */
-	void maxRowsChanged(Statement stmt) {
-		synchronized (this.mutex) {
-			if (this.statementsUsingMaxRows == null) {
-				this.statementsUsingMaxRows = new HashMap();
-			}
-
-			this.statementsUsingMaxRows.put(stmt, stmt);
-
-			this.maxRowsChanged = true;
+	public synchronized void maxRowsChanged(Statement stmt) {
+		if (this.statementsUsingMaxRows == null) {
+			this.statementsUsingMaxRows = new HashMap();
 		}
+
+		this.statementsUsingMaxRows.put(stmt, stmt);
+
+		this.maxRowsChanged = true;
 	}
 
 	/**
@@ -4052,8 +3957,8 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 		}
 
 		Object escapedSqlResult = EscapeProcessor.escapeSQL(sql,
-				serverSupportsConvertFn(),
-				this);
+                                                          serverSupportsConvertFn(),
+                                                          getLoadBalanceSafeProxy());
 
 		if (escapedSqlResult instanceof String) {
 			return (String) escapedSqlResult;
@@ -4065,7 +3970,7 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 	private CallableStatement parseCallableStatement(String sql)
 			throws SQLException {
 		Object escapedSqlResult = EscapeProcessor.escapeSQL(sql,
-				serverSupportsConvertFn(), this);
+				serverSupportsConvertFn(), getLoadBalanceSafeProxy());
 
 		boolean isFunctionCall = false;
 		String parsedSql = null;
@@ -4078,7 +3983,7 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 			isFunctionCall = false;
 		}
 
-		return CallableStatement.getInstance(this, parsedSql, this.database,
+		return CallableStatement.getInstance(getLoadBalanceSafeProxy(), parsedSql, this.database,
 				isFunctionCall);
 	}
 
@@ -4101,7 +4006,7 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 		pingInternal(true, 0);
 	}
 
-	protected void pingInternal(boolean checkForClosedConnection, int timeoutMillis)
+	public void pingInternal(boolean checkForClosedConnection, int timeoutMillis)
 			throws SQLException {
 		if (checkForClosedConnection) {
 			checkClosed();
@@ -4171,11 +4076,13 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 							.get(key);
 	
 					if (cachedParamInfo != null) {
-						cStmt = CallableStatement.getInstance(this, cachedParamInfo);
+						cStmt = CallableStatement.getInstance(getLoadBalanceSafeProxy(), cachedParamInfo);
 					} else {
 						cStmt = parseCallableStatement(sql);
 	
-						cachedParamInfo = cStmt.paramInfo;
+						synchronized (cStmt) {
+							cachedParamInfo = cStmt.paramInfo;
+						}
 	
 						this.parsedCallableStatementCache.put(key, cachedParamInfo);
 					}
@@ -4271,7 +4178,7 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 	 * @exception SQLException
 	 *                if a database-access error occurs.
 	 */
-	public java.sql.PreparedStatement prepareStatement(String sql,
+	public synchronized java.sql.PreparedStatement prepareStatement(String sql,
 			int resultSetType, int resultSetConcurrency) throws SQLException {
 		checkClosed();
 
@@ -4301,7 +4208,7 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 
 					if (pStmt == null) {
 						try {
-							pStmt = ServerPreparedStatement.getInstance(this, nativeSql,
+							pStmt = ServerPreparedStatement.getInstance(getLoadBalanceSafeProxy(), nativeSql,
 									this.database, resultSetType, resultSetConcurrency);
 							if (sql.length() < getPreparedStatementCacheSqlLimit()) {
 								((com.mysql.jdbc.ServerPreparedStatement)pStmt).isCached = true;
@@ -4325,7 +4232,7 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 				}
 			} else {
 				try {
-					pStmt = ServerPreparedStatement.getInstance(this, nativeSql,
+					pStmt = ServerPreparedStatement.getInstance(getLoadBalanceSafeProxy(), nativeSql,
 							this.database, resultSetType, resultSetConcurrency);
 					
 					pStmt.setResultSetType(resultSetType);
@@ -4401,7 +4308,7 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 	 * @throws SQLException
 	 *             if an error occurs
 	 */
-	protected void realClose(boolean calledExplicitly, boolean issueRollback,
+	public void realClose(boolean calledExplicitly, boolean issueRollback,
 			boolean skipLocalTeardown, Throwable reason) throws SQLException {
 		SQLException sqlEx = null;
 
@@ -4499,7 +4406,7 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 
 	}
 
-	protected void recachePreparedStatement(ServerPreparedStatement pstmt) throws SQLException {
+	public synchronized void recachePreparedStatement(ServerPreparedStatement pstmt) throws SQLException {
 		if (pstmt.isPoolable()) {
 			synchronized (this.serverSideStatementCache) {
 				this.serverSideStatementCache.put(pstmt.originalSql, pstmt);
@@ -4512,7 +4419,7 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 	 * 
 	 * @param queryTimeMs
 	 */
-	protected void registerQueryExecutionTime(long queryTimeMs) {
+	public void registerQueryExecutionTime(long queryTimeMs) {
 		if (queryTimeMs > this.longestQueryTimeMs) {
 			this.longestQueryTimeMs = queryTimeMs;
 
@@ -4536,7 +4443,7 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 	 * @param stmt
 	 *            the Statement instance to remove
 	 */
-	void registerStatement(Statement stmt) {
+	public void registerStatement(Statement stmt) {
 		synchronized (this.openStatements) {
 			this.openStatements.put(stmt, stmt);
 		}
@@ -4741,7 +4648,7 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 		}
 	}
 
-	protected void reportNumberOfTablesAccessed(int numTablesAccessed) {
+	public void reportNumberOfTablesAccessed(int numTablesAccessed) {
 		if (numTablesAccessed < this.minimumNumberTablesAccessed) {
 			this.minimumNumberTablesAccessed = numTablesAccessed;
 		}
@@ -4779,8 +4686,64 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 	 *                if a database access error occurs
 	 * @see commit
 	 */
-	public void rollback() throws SQLException {
-		synchronized (getMutex()) {
+	public synchronized void rollback() throws SQLException {
+		checkClosed();
+
+		try {
+			if (this.connectionLifecycleInterceptors != null) {
+				IterateBlock iter = new IterateBlock(this.connectionLifecycleInterceptors.iterator()) {
+
+					void forEach(Object each) throws SQLException {
+						if (!((ConnectionLifecycleInterceptor)each).rollback()) {
+							this.stopIterating = true;
+						}
+					}
+				};
+				
+				iter.doForAll();
+				
+				if (!iter.fullIteration()) {
+					return;
+				}
+			}
+			// no-op if _relaxAutoCommit == true
+			if (this.autoCommit && !getRelaxAutoCommit()) {
+				throw SQLError.createSQLException(
+						"Can't call rollback when autocommit=true",
+						SQLError.SQL_STATE_CONNECTION_NOT_OPEN, getExceptionInterceptor());
+			} else if (this.transactionsSupported) {
+				try {
+					rollbackNoChecks();
+				} catch (SQLException sqlEx) {
+					// We ignore non-transactional tables if told to do so
+					if (getIgnoreNonTxTables()
+							&& (sqlEx.getErrorCode() == SQLError.ER_WARNING_NOT_COMPLETE_ROLLBACK)) {
+						return;
+					}
+					throw sqlEx;
+
+				}
+			}
+		} catch (SQLException sqlException) {
+			if (SQLError.SQL_STATE_COMMUNICATION_LINK_FAILURE
+					.equals(sqlException.getSQLState())) {
+				throw SQLError.createSQLException(
+						"Communications link failure during rollback(). Transaction resolution unknown.",
+						SQLError.SQL_STATE_TRANSACTION_RESOLUTION_UNKNOWN, getExceptionInterceptor());
+			}
+
+			throw sqlException;
+		} finally {
+			this.needsPing = this.getReconnectAtTxEnd();
+		}
+	}
+
+	/**
+	 * @see Connection#rollback(Savepoint)
+	 */
+	public synchronized void rollback(final Savepoint savepoint) throws SQLException {
+
+		if (versionMeetsMinimum(4, 0, 14) || versionMeetsMinimum(4, 1, 1)) {
 			checkClosed();
 	
 			try {
@@ -4788,7 +4751,7 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 					IterateBlock iter = new IterateBlock(this.connectionLifecycleInterceptors.iterator()) {
 
 						void forEach(Object each) throws SQLException {
-							if (!((ConnectionLifecycleInterceptor)each).rollback()) {
+							if (!((ConnectionLifecycleInterceptor)each).rollback(savepoint)) {
 								this.stopIterating = true;
 							}
 						}
@@ -4800,115 +4763,57 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 						return;
 					}
 				}
-				// no-op if _relaxAutoCommit == true
-				if (this.autoCommit && !getRelaxAutoCommit()) {
-					throw SQLError.createSQLException(
-							"Can't call rollback when autocommit=true",
-							SQLError.SQL_STATE_CONNECTION_NOT_OPEN, getExceptionInterceptor());
-				} else if (this.transactionsSupported) {
-					try {
-						rollbackNoChecks();
-					} catch (SQLException sqlEx) {
-						// We ignore non-transactional tables if told to do so
-						if (getIgnoreNonTxTables()
-								&& (sqlEx.getErrorCode() != SQLError.ER_WARNING_NOT_COMPLETE_ROLLBACK)) {
-							throw sqlEx;
+				
+				StringBuffer rollbackQuery = new StringBuffer(
+						"ROLLBACK TO SAVEPOINT ");
+				rollbackQuery.append('`');
+				rollbackQuery.append(savepoint.getSavepointName());
+				rollbackQuery.append('`');
+
+				java.sql.Statement stmt = null;
+
+				try {
+					stmt = getMetadataSafeStatement();
+
+					stmt.executeUpdate(rollbackQuery.toString());
+				} catch (SQLException sqlEx) {
+					int errno = sqlEx.getErrorCode();
+
+					if (errno == 1181) {
+						String msg = sqlEx.getMessage();
+
+						if (msg != null) {
+							int indexOfError153 = msg.indexOf("153");
+
+							if (indexOfError153 != -1) {
+								throw SQLError.createSQLException("Savepoint '"
+										+ savepoint.getSavepointName()
+										+ "' does not exist",
+										SQLError.SQL_STATE_ILLEGAL_ARGUMENT,
+										errno, getExceptionInterceptor());
+							}
 						}
 					}
+
+					// We ignore non-transactional tables if told to do so
+					if (getIgnoreNonTxTables()
+							&& (sqlEx.getErrorCode() != SQLError.ER_WARNING_NOT_COMPLETE_ROLLBACK)) {
+						throw sqlEx;
+					}
+
+					if (SQLError.SQL_STATE_COMMUNICATION_LINK_FAILURE
+							.equals(sqlEx.getSQLState())) {
+						throw SQLError.createSQLException(
+								"Communications link failure during rollback(). Transaction resolution unknown.",
+								SQLError.SQL_STATE_TRANSACTION_RESOLUTION_UNKNOWN, getExceptionInterceptor());
+					}
+
+					throw sqlEx;
+				} finally {
+					closeStatement(stmt);
 				}
-			} catch (SQLException sqlException) {
-				if (SQLError.SQL_STATE_COMMUNICATION_LINK_FAILURE
-						.equals(sqlException.getSQLState())) {
-					throw SQLError.createSQLException(
-							"Communications link failure during rollback(). Transaction resolution unknown.",
-							SQLError.SQL_STATE_TRANSACTION_RESOLUTION_UNKNOWN, getExceptionInterceptor());
-				}
-	
-				throw sqlException;
 			} finally {
 				this.needsPing = this.getReconnectAtTxEnd();
-			}
-		}
-	}
-
-	/**
-	 * @see Connection#rollback(Savepoint)
-	 */
-	public void rollback(final Savepoint savepoint) throws SQLException {
-
-		if (versionMeetsMinimum(4, 0, 14) || versionMeetsMinimum(4, 1, 1)) {
-			synchronized (getMutex()) {
-				checkClosed();
-	
-				try {
-					if (this.connectionLifecycleInterceptors != null) {
-						IterateBlock iter = new IterateBlock(this.connectionLifecycleInterceptors.iterator()) {
-
-							void forEach(Object each) throws SQLException {
-								if (!((ConnectionLifecycleInterceptor)each).rollback(savepoint)) {
-									this.stopIterating = true;
-								}
-							}
-						};
-						
-						iter.doForAll();
-						
-						if (!iter.fullIteration()) {
-							return;
-						}
-					}
-					
-					StringBuffer rollbackQuery = new StringBuffer(
-							"ROLLBACK TO SAVEPOINT ");
-					rollbackQuery.append('`');
-					rollbackQuery.append(savepoint.getSavepointName());
-					rollbackQuery.append('`');
-	
-					java.sql.Statement stmt = null;
-	
-					try {
-						stmt = getMetadataSafeStatement();
-	
-						stmt.executeUpdate(rollbackQuery.toString());
-					} catch (SQLException sqlEx) {
-						int errno = sqlEx.getErrorCode();
-	
-						if (errno == 1181) {
-							String msg = sqlEx.getMessage();
-	
-							if (msg != null) {
-								int indexOfError153 = msg.indexOf("153");
-	
-								if (indexOfError153 != -1) {
-									throw SQLError.createSQLException("Savepoint '"
-											+ savepoint.getSavepointName()
-											+ "' does not exist",
-											SQLError.SQL_STATE_ILLEGAL_ARGUMENT,
-											errno, getExceptionInterceptor());
-								}
-							}
-						}
-	
-						// We ignore non-transactional tables if told to do so
-						if (getIgnoreNonTxTables()
-								&& (sqlEx.getErrorCode() != SQLError.ER_WARNING_NOT_COMPLETE_ROLLBACK)) {
-							throw sqlEx;
-						}
-	
-						if (SQLError.SQL_STATE_COMMUNICATION_LINK_FAILURE
-								.equals(sqlEx.getSQLState())) {
-							throw SQLError.createSQLException(
-									"Communications link failure during rollback(). Transaction resolution unknown.",
-									SQLError.SQL_STATE_TRANSACTION_RESOLUTION_UNKNOWN, getExceptionInterceptor());
-						}
-	
-						throw sqlEx;
-					} finally {
-						closeStatement(stmt);
-					}
-				} finally {
-					this.needsPing = this.getReconnectAtTxEnd();
-				}
 			}
 		} else {
 			throw SQLError.notImplemented();
@@ -4936,7 +4841,7 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 
 		String nativeSql = getProcessEscapeCodesForPrepStmts() ? nativeSQL(sql): sql;
 
-		return ServerPreparedStatement.getInstance(this, nativeSql, this.getCatalog(),
+		return ServerPreparedStatement.getInstance(getLoadBalanceSafeProxy(), nativeSql, this.getCatalog(),
 				DEFAULT_RESULT_SET_TYPE,
 				DEFAULT_RESULT_SET_CONCURRENCY);
 	}
@@ -4948,7 +4853,7 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 			int autoGenKeyIndex) throws SQLException {
 		String nativeSql = getProcessEscapeCodesForPrepStmts() ? nativeSQL(sql): sql;
 
-		PreparedStatement pStmt = ServerPreparedStatement.getInstance(this, nativeSql, this.getCatalog(),
+		PreparedStatement pStmt = ServerPreparedStatement.getInstance(getLoadBalanceSafeProxy(), nativeSql, this.getCatalog(),
 				DEFAULT_RESULT_SET_TYPE,
 				DEFAULT_RESULT_SET_CONCURRENCY);
 		
@@ -4965,7 +4870,7 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 			int resultSetType, int resultSetConcurrency) throws SQLException {
 		String nativeSql = getProcessEscapeCodesForPrepStmts() ? nativeSQL(sql): sql;
 
-		return ServerPreparedStatement.getInstance(this, nativeSql, this.getCatalog(),
+		return ServerPreparedStatement.getInstance(getLoadBalanceSafeProxy(), nativeSql, this.getCatalog(),
 				resultSetType,
 				resultSetConcurrency);
 	}
@@ -5016,7 +4921,7 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 		return pStmt;
 	}
 	
-	protected boolean serverSupportsConvertFn() throws SQLException {
+	public boolean serverSupportsConvertFn() throws SQLException {
 		return versionMeetsMinimum(4, 0, 2);
 	}
 
@@ -5042,84 +4947,76 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 	 * @exception SQLException
 	 *                if a database access error occurs
 	 */
-	public void setAutoCommit(final boolean autoCommitFlag) throws SQLException {
-		synchronized (getMutex()) {
-			checkClosed();
-			
-			if (this.connectionLifecycleInterceptors != null) {
-				IterateBlock iter = new IterateBlock(this.connectionLifecycleInterceptors.iterator()) {
+	public synchronized void setAutoCommit(final boolean autoCommitFlag) throws SQLException {
+		checkClosed();
+		
+		if (this.connectionLifecycleInterceptors != null) {
+			IterateBlock iter = new IterateBlock(this.connectionLifecycleInterceptors.iterator()) {
 
-					void forEach(Object each) throws SQLException {
-						if (!((ConnectionLifecycleInterceptor)each).setAutoCommit(autoCommitFlag)) {
-							this.stopIterating = true;
-						}
+				void forEach(Object each) throws SQLException {
+					if (!((ConnectionLifecycleInterceptor)each).setAutoCommit(autoCommitFlag)) {
+						this.stopIterating = true;
 					}
-				};
-				
-				iter.doForAll();
-				
-				if (!iter.fullIteration()) {
-					return;
 				}
-			}
-	
-			if (getAutoReconnectForPools()) {
-				setHighAvailability(true);
-			}
-	
-			try {
-				if (this.transactionsSupported) {
-	
-					boolean needsSetOnServer = true;
-	
-					if (this.getUseLocalSessionState()
-							&& this.autoCommit == autoCommitFlag) {
-						needsSetOnServer = false;
-					} else if (!this.getHighAvailability()) {
-						needsSetOnServer = this.getIO()
-								.isSetNeededForAutoCommitMode(autoCommitFlag);
-					}
-	
-					// this internal value must be set first as failover depends on
-					// it
-					// being set to true to fail over (which is done by most
-					// app servers and connection pools at the end of
-					// a transaction), and the driver issues an implicit set
-					// based on this value when it (re)-connects to a server
-					// so the value holds across connections
-					this.autoCommit = autoCommitFlag;
-	
-					if (needsSetOnServer) {
-						execSQL(null, autoCommitFlag ? "SET autocommit=1"
-								: "SET autocommit=0", -1, null,
-								DEFAULT_RESULT_SET_TYPE,
-								DEFAULT_RESULT_SET_CONCURRENCY, false,
-								this.database, null, false);
-					}
-	
-				} else {
-					if ((autoCommitFlag == false) && !getRelaxAutoCommit()) {
-						throw SQLError.createSQLException("MySQL Versions Older than 3.23.15 "
-								+ "do not support transactions",
-								SQLError.SQL_STATE_CONNECTION_NOT_OPEN, getExceptionInterceptor());
-					}
-	
-					this.autoCommit = autoCommitFlag;
-				}
-			} finally {
-				if (this.getAutoReconnectForPools()) {
-					setHighAvailability(false);
-				}
-			}
-	
-			//if (autoCommitFlag) {
-			//	if (this.io.isSetNeededForAutoCommitMode(true)) {
-			//		throw new RuntimeException();
-			//	}
-			//}
+			};
 			
-			return;
+			iter.doForAll();
+			
+			if (!iter.fullIteration()) {
+				return;
+			}
 		}
+
+		if (getAutoReconnectForPools()) {
+			setHighAvailability(true);
+		}
+
+		try {
+			if (this.transactionsSupported) {
+
+				boolean needsSetOnServer = true;
+
+				if (this.getUseLocalSessionState()
+						&& this.autoCommit == autoCommitFlag) {
+					needsSetOnServer = false;
+				} else if (!this.getHighAvailability()) {
+					needsSetOnServer = this.getIO()
+							.isSetNeededForAutoCommitMode(autoCommitFlag);
+				}
+
+				// this internal value must be set first as failover depends on
+				// it
+				// being set to true to fail over (which is done by most
+				// app servers and connection pools at the end of
+				// a transaction), and the driver issues an implicit set
+				// based on this value when it (re)-connects to a server
+				// so the value holds across connections
+				this.autoCommit = autoCommitFlag;
+
+				if (needsSetOnServer) {
+					execSQL(null, autoCommitFlag ? "SET autocommit=1"
+							: "SET autocommit=0", -1, null,
+							DEFAULT_RESULT_SET_TYPE,
+							DEFAULT_RESULT_SET_CONCURRENCY, false,
+							this.database, null, false);
+				}
+
+			} else {
+				if ((autoCommitFlag == false) && !getRelaxAutoCommit()) {
+					throw SQLError.createSQLException("MySQL Versions Older than 3.23.15 "
+							+ "do not support transactions",
+							SQLError.SQL_STATE_CONNECTION_NOT_OPEN, getExceptionInterceptor());
+				}
+
+				this.autoCommit = autoCommitFlag;
+			}
+		} finally {
+			if (this.getAutoReconnectForPools()) {
+				setHighAvailability(false);
+			}
+		}
+		
+		return;
 	}
 
 	/**
@@ -5135,62 +5032,60 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 	 * @throws SQLException
 	 *             if a database access error occurs
 	 */
-	public void setCatalog(final String catalog) throws SQLException {
-		synchronized (getMutex()) {
-			checkClosed();
-	
-			if (catalog == null) {
-				throw SQLError.createSQLException("Catalog can not be null",
-						SQLError.SQL_STATE_ILLEGAL_ARGUMENT, getExceptionInterceptor());
-			}
-			
-			if (this.connectionLifecycleInterceptors != null) {
-				IterateBlock iter = new IterateBlock(this.connectionLifecycleInterceptors.iterator()) {
+	public synchronized void setCatalog(final String catalog) throws SQLException {
+		checkClosed();
 
-					void forEach(Object each) throws SQLException {
-						if (!((ConnectionLifecycleInterceptor)each).setCatalog(catalog)) {
-							this.stopIterating = true;
-						}
+		if (catalog == null) {
+			throw SQLError.createSQLException("Catalog can not be null",
+					SQLError.SQL_STATE_ILLEGAL_ARGUMENT, getExceptionInterceptor());
+		}
+		
+		if (this.connectionLifecycleInterceptors != null) {
+			IterateBlock iter = new IterateBlock(this.connectionLifecycleInterceptors.iterator()) {
+
+				void forEach(Object each) throws SQLException {
+					if (!((ConnectionLifecycleInterceptor)each).setCatalog(catalog)) {
+						this.stopIterating = true;
 					}
-				};
-				
-				iter.doForAll();
-				
-				if (!iter.fullIteration()) {
+				}
+			};
+			
+			iter.doForAll();
+			
+			if (!iter.fullIteration()) {
+				return;
+			}
+		}
+		
+		if (getUseLocalSessionState()) {
+			if (this.lowerCaseTableNames) {
+				if (this.database.equalsIgnoreCase(catalog)) {
+					return;
+				}
+			} else {
+				if (this.database.equals(catalog)) {
 					return;
 				}
 			}
-			
-			if (getUseLocalSessionState()) {
-				if (this.lowerCaseTableNames) {
-					if (this.database.equalsIgnoreCase(catalog)) {
-						return;
-					}
-				} else {
-					if (this.database.equals(catalog)) {
-						return;
-					}
-				}
-			}
-			
-			String quotedId = this.dbmd.getIdentifierQuoteString();
-	
-			if ((quotedId == null) || quotedId.equals(" ")) {
-				quotedId = "";
-			}
-	
-			StringBuffer query = new StringBuffer("USE ");
-			query.append(quotedId);
-			query.append(catalog);
-			query.append(quotedId);
-	
-			execSQL(null, query.toString(), -1, null,
-					DEFAULT_RESULT_SET_TYPE,
-					DEFAULT_RESULT_SET_CONCURRENCY, false,
-					this.database, null, false);
-			
-			this.database = catalog;
 		}
+		
+		String quotedId = this.dbmd.getIdentifierQuoteString();
+
+		if ((quotedId == null) || quotedId.equals(" ")) {
+			quotedId = "";
+		}
+
+		StringBuffer query = new StringBuffer("USE ");
+		query.append(quotedId);
+		query.append(catalog);
+		query.append(quotedId);
+
+		execSQL(null, query.toString(), -1, null,
+				DEFAULT_RESULT_SET_TYPE,
+				DEFAULT_RESULT_SET_CONCURRENCY, false,
+				this.database, null, false);
+		
+		this.database = catalog;
 	}
 
 	/**
@@ -5198,31 +5093,7 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 	 *            The failedOver to set.
 	 */
 	public synchronized void setFailedOver(boolean flag) {
-		if (flag && getRoundRobinLoadBalance()) {
-			return; // we don't failover for round-robin load-balanced connections
-		}
-		
-		this.failedOver = flag;
-	}
-
-	/**
-	 * Sets state for a failed-over connection
-	 * 
-	 * @throws SQLException
-	 *             DOCUMENT ME!
-	 */
-	private void setFailedOverState() throws SQLException {
-		if (getRoundRobinLoadBalance()) {
-			return; // we don't failover for round-robin load-balanced connections
-		}
-		
-		if (getFailOverReadOnly()) {
-			setReadOnlyInternal(true);
-		}
-
-		this.queriesIssuedFailedOver = 0;
-		this.failedOver = true;
-		this.masterFailTimeMillis = System.currentTimeMillis();
+		// handled higher up
 	}
 
 	/**
@@ -5242,10 +5113,10 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 	 *            The preferSlaveDuringFailover to set.
 	 */
 	public void setPreferSlaveDuringFailover(boolean flag) {
-		this.preferSlaveDuringFailover = flag;
+		// no-op, handled further up in the wrapper
 	}
 
-	void setReadInfoMsgEnabled(boolean flag) {
+	public void setReadInfoMsgEnabled(boolean flag) {
 		this.readInfoMsg = flag;
 	}
 
@@ -5261,17 +5132,11 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 	 */
 	public void setReadOnly(boolean readOnlyFlag) throws SQLException {
 		checkClosed();
-		
-		// Ignore calls to this method if we're failed over and
-		// we're configured to fail over read-only.
-		if (this.failedOver && getFailOverReadOnly() && !readOnlyFlag) {
-			return;
-		}
-	
+
 		setReadOnlyInternal(readOnlyFlag);
 	}
 	
-	protected void setReadOnlyInternal(boolean readOnlyFlag) throws SQLException {
+	public void setReadOnlyInternal(boolean readOnlyFlag) throws SQLException {
 		this.readOnly = readOnlyFlag;
 	}
 	
@@ -5286,26 +5151,24 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 		return savepoint;
 	}
 
-	private void setSavepoint(MysqlSavepoint savepoint) throws SQLException {
+	private synchronized void setSavepoint(MysqlSavepoint savepoint) throws SQLException {
 
 		if (versionMeetsMinimum(4, 0, 14) || versionMeetsMinimum(4, 1, 1)) {
-			synchronized (getMutex()) {
-				checkClosed();
-	
-				StringBuffer savePointQuery = new StringBuffer("SAVEPOINT ");
-				savePointQuery.append('`');
-				savePointQuery.append(savepoint.getSavepointName());
-				savePointQuery.append('`');
-	
-				java.sql.Statement stmt = null;
-	
-				try {
-					stmt = getMetadataSafeStatement();
-	
-					stmt.executeUpdate(savePointQuery.toString());
-				} finally {
-					closeStatement(stmt);
-				}
+			checkClosed();
+
+			StringBuffer savePointQuery = new StringBuffer("SAVEPOINT ");
+			savePointQuery.append('`');
+			savePointQuery.append(savepoint.getSavepointName());
+			savePointQuery.append('`');
+
+			java.sql.Statement stmt = null;
+
+			try {
+				stmt = getMetadataSafeStatement();
+
+				stmt.executeUpdate(savePointQuery.toString());
+			} finally {
+				closeStatement(stmt);
 			}
 		} else {
 			throw SQLError.notImplemented();
@@ -5477,21 +5340,6 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 		}
 	}
 	
-	/**
-	 * Should we try to connect back to the master? We try when we've been
-	 * failed over >= this.secondsBeforeRetryMaster _or_ we've issued >
-	 * this.queriesIssuedFailedOver
-	 * 
-	 * @return DOCUMENT ME!
-	 */
-	private boolean shouldFallBack() {
-		long secondsSinceFailedOver = (System.currentTimeMillis() - this.masterFailTimeMillis) / 1000;
-
-		// Done this way so we can set a condition in the debugger
-		boolean tryFallback = ((secondsSinceFailedOver >= getSecondsBeforeRetryMaster()) || (this.queriesIssuedFailedOver >= getQueriesBeforeRetryMaster()));
-
-		return tryFallback;
-	}
 	
 	/**
 	 * Used by MiniAdmin to shutdown a MySQL server
@@ -5546,7 +5394,7 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 	 * @param stmt
 	 *            the Statement instance to remove
 	 */
-	void unregisterStatement(Statement stmt) {
+	public void unregisterStatement(Statement stmt) {
 		if (this.openStatements != null) {
 			synchronized (this.openStatements) {
 				this.openStatements.remove(stmt);
@@ -5564,25 +5412,23 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 	 *             if a database error occurs issuing the statement that sets
 	 *             the limit default.
 	 */
-	void unsetMaxRows(Statement stmt) throws SQLException {
-		synchronized (this.mutex) {
-			if (this.statementsUsingMaxRows != null) {
-				Object found = this.statementsUsingMaxRows.remove(stmt);
+	public synchronized void unsetMaxRows(Statement stmt) throws SQLException {
+		if (this.statementsUsingMaxRows != null) {
+			Object found = this.statementsUsingMaxRows.remove(stmt);
 
-				if ((found != null)
-						&& (this.statementsUsingMaxRows.size() == 0)) {
-					execSQL(null, "SET OPTION SQL_SELECT_LIMIT=DEFAULT", -1,
-							null, DEFAULT_RESULT_SET_TYPE,
-							DEFAULT_RESULT_SET_CONCURRENCY, false, 
-							this.database, null, false);
+			if ((found != null)
+					&& (this.statementsUsingMaxRows.size() == 0)) {
+				execSQL(null, "SET OPTION SQL_SELECT_LIMIT=DEFAULT", -1,
+						null, DEFAULT_RESULT_SET_TYPE,
+						DEFAULT_RESULT_SET_CONCURRENCY, false, 
+						this.database, null, false);
 
-					this.maxRowsChanged = false;
-				}
+				this.maxRowsChanged = false;
 			}
 		}
 	}
 	
-	boolean useAnsiQuotedIdentifiers() {
+	public synchronized boolean useAnsiQuotedIdentifiers() {
 		return this.useAnsiQuotes;
 	}
 	
@@ -5591,10 +5437,8 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 	 * 
 	 * @return DOCUMENT ME!
 	 */
-	boolean useMaxRows() {
-		synchronized (this.mutex) {
-			return this.maxRowsChanged;
-		}
+	public synchronized boolean useMaxRows() {
+		return this.maxRowsChanged;
 	}
 	
 	public boolean versionMeetsMinimum(int major, int minor, int subminor)
@@ -5618,7 +5462,7 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 	 * @return metadata cached for the given SQL, or none if it doesn't
 	 *                  exist.
 	 */
-	protected CachedResultSetMetaData getCachedMetaData(String sql) {
+	public CachedResultSetMetaData getCachedMetaData(String sql) {
 		if (this.resultSetMetadataCache != null) {
 			synchronized (this.resultSetMetadataCache) {
 				return (CachedResultSetMetaData) this.resultSetMetadataCache
@@ -5643,7 +5487,7 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 	 *
 	 * @throws SQLException
 	 */
-	protected void initializeResultsMetadataFromCache(String sql,
+	public void initializeResultsMetadataFromCache(String sql,
 			CachedResultSetMetaData cachedMetaData, ResultSetInternalMethods resultSet)
 			throws SQLException {
 
@@ -5719,7 +5563,7 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 		ex.init(this, this.props);
 	}
 	
-	protected void transactionBegun() throws SQLException {
+	public synchronized void transactionBegun() throws SQLException {
 		if (this.connectionLifecycleInterceptors != null) {
 			IterateBlock iter = new IterateBlock(this.connectionLifecycleInterceptors.iterator()) {
 
@@ -5732,7 +5576,7 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 		}
 	}
 	
-	protected void transactionCompleted() throws SQLException {
+	public synchronized void transactionCompleted() throws SQLException {
 		if (this.connectionLifecycleInterceptors != null) {
 			IterateBlock iter = new IterateBlock(this.connectionLifecycleInterceptors.iterator()) {
 
@@ -5757,5 +5601,17 @@ public class ConnectionImpl extends ConnectionPropertiesImpl implements
 	
 	public boolean getRequiresEscapingEncoder() {
 		return requiresEscapingEncoder;
+	}
+	
+	public synchronized boolean isServerLocal() throws SQLException {
+		SocketFactory factory = getIO().socketFactory;
+		
+		if (factory instanceof SocketMetadata) {
+			return ((SocketMetadata)factory).isLocallyConnected(this);
+		} else {
+			getLog().logWarn(Messages.getString("Connection.NoMetadataOnSocketFactory"));
+			
+			return false;
+		}
 	}
 }

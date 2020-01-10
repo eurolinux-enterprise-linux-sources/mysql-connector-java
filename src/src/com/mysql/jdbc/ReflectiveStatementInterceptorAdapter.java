@@ -1,5 +1,5 @@
 /*
- Copyright 2009 Sun Microsystems, Inc. All rights reserved.
+ Copyright (c) 2009, 2011, Oracle and/or its affiliates. All rights reserved., Inc. All rights reserved.
  U.S. Government Rights - Commercial software. Government users are subject
  to the Sun Microsystems, Inc. standard license agreement and applicable
  provisions of the FAR and its supplements. Use is subject to license terms.
@@ -8,7 +8,7 @@
  trademarks or registered trademarks of Sun Microsystems, Inc. in the U.S.
  and other countries.
 
- Copyright 2009 Sun Microsystems, Inc. Tous droits réservés.
+ Copyright (c) 2009, 2010, Oracle and/or its affiliates. All rights reserved., Inc. Tous droits réservés.
  L'utilisation est soumise aux termes du contrat de licence.Cette
  distribution peut comprendre des composants développés par des tierces
  parties.Sun, Sun Microsystems,  le logo Sun et  MySQL Enterprise Monitor sont
@@ -58,7 +58,7 @@ public class ReflectiveStatementInterceptorAdapter implements
 			return (ResultSetInternalMethods) v2PostProcessMethod.invoke(toProxy, new Object[] {sql,
 				interceptedStatement,
 				originalResultSet, connection,
-				new Integer(warningCount), noIndexUsed ? Boolean.TRUE : Boolean.FALSE, noGoodIndexUsed ? Boolean.TRUE: Boolean.FALSE,
+				Integer.valueOf(warningCount), noIndexUsed ? Boolean.TRUE : Boolean.FALSE, noGoodIndexUsed ? Boolean.TRUE: Boolean.FALSE,
 						statementException});
 		} catch (IllegalArgumentException e) {
 			SQLException sqlEx = new SQLException("Unable to reflectively invoke interceptor");

@@ -1,6 +1,6 @@
 /*
- Copyright  2002-2007 MySQL AB, 2008 Sun Microsystems
- All rights reserved. Use is subject to license terms.
+ Copyright (c) 2002, 2011, Oracle and/or its affiliates. All rights reserved.
+ 
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of version 2 of the GNU General Public License as
@@ -36,7 +36,6 @@ import java.util.Map;
 import java.util.TreeMap;
 
 import com.mysql.jdbc.profiler.ProfilerEvent;
-import com.mysql.jdbc.profiler.ProfilerEventHandlerFactory;
 
 /**
  * A result set that is updatable.
@@ -45,8 +44,7 @@ import com.mysql.jdbc.profiler.ProfilerEventHandlerFactory;
  */
 public class UpdatableResultSet extends ResultSetImpl {
 	/** Marker for 'stream' data when doing INSERT rows */
-	protected final static byte[] STREAM_DATA_MARKER = "** STREAM DATA **" //$NON-NLS-1$
-	.getBytes();
+	final static byte[] STREAM_DATA_MARKER = StringUtils.getBytes("** STREAM DATA **"); //$NON-NLS-1$
 
 	protected SingleByteCharsetConverter charConverter;
 
@@ -117,7 +115,7 @@ public class UpdatableResultSet extends ResultSetImpl {
 	 *             DOCUMENT ME!
 	 */
 	protected UpdatableResultSet(String catalog, Field[] fields, RowData tuples,
-			ConnectionImpl conn, StatementImpl creatorStmt) throws SQLException {
+			MySQLConnection conn, StatementImpl creatorStmt) throws SQLException {
 		super(catalog, fields, tuples, conn, creatorStmt);
 		checkUpdatability();
 		this.populateInserterWithDefaultValues =
@@ -222,7 +220,7 @@ public class UpdatableResultSet extends ResultSetImpl {
 	 *
 	 * @see com.mysql.jdbc.ResultSet#checkRowPos()
 	 */
-	protected void checkRowPos() throws SQLException {
+	protected synchronized void checkRowPos() throws SQLException {
 		checkClosed();
 
 		if (!this.onInsertRow) {
@@ -475,12 +473,6 @@ public class UpdatableResultSet extends ResultSetImpl {
 
 		this.deleter.clearParameters();
 
-		String characterEncoding = null;
-
-		if (this.connection.getUseUnicode()) {
-			characterEncoding = this.connection.getEncoding();
-		}
-
 		int numKeys = this.primaryKeyIndicies.size();
 
 		if (numKeys == 1) {
@@ -696,7 +688,7 @@ public class UpdatableResultSet extends ResultSetImpl {
 	                tableNamesSoFar.put(fqTableName, fqTableName);
 	            }
 
-	            columnIndicesToTable.put(new Integer(i), fqTableName);
+	            columnIndicesToTable.put(Integer.valueOf(i), fqTableName);
 
 	            updColumnNameToIndex = getColumnsToIndexMapForTableAndDB(databaseName, tableOnlyName);
 	        } else {
@@ -718,7 +710,7 @@ public class UpdatableResultSet extends ResultSetImpl {
                         tableNamesSoFar.put(fqTableName, fqTableName);
                     }
 
-                    columnIndicesToTable.put(new Integer(i), fqTableName);
+                    columnIndicesToTable.put(Integer.valueOf(i), fqTableName);
 
                     updColumnNameToIndex = getColumnsToIndexMapForTableAndDB(this.catalog, tableOnlyName);
 	            }
@@ -736,7 +728,7 @@ public class UpdatableResultSet extends ResultSetImpl {
 			}
 
 			if (updColumnNameToIndex != null && columnName != null) {
-			    updColumnNameToIndex.put(columnName, new Integer(i));
+			    updColumnNameToIndex.put(columnName, Integer.valueOf(i));
 			}
 
 			String originalTableName = this.fields[i].getOriginalTableName();
@@ -771,7 +763,7 @@ public class UpdatableResultSet extends ResultSetImpl {
             String qualifiedColumnName = fqcnBuf.toString();
             
 			if (this.fields[i].isPrimaryKey()) {
-				this.primaryKeyIndicies.add(Constants.integerValueOf(i));
+				this.primaryKeyIndicies.add(Integer.valueOf(i));
 
 				if (!keysFirstTime) {
 					keyValues.append(" AND "); //$NON-NLS-1$
@@ -919,7 +911,7 @@ public class UpdatableResultSet extends ResultSetImpl {
 			// than one auto-increment key (which is the way it is _today_)
 			//
 			if (this.fields[i].isAutoIncrement() && autoIncrementId > 0) {
-				newRow[i] = String.valueOf(autoIncrementId).getBytes();
+				newRow[i] = StringUtils.getBytes(String.valueOf(autoIncrementId));
 				this.inserter.setBytesNoEscapeNoQuotes(i + 1, newRow[i]);
 			}
 		}
@@ -1096,7 +1088,7 @@ public class UpdatableResultSet extends ResultSetImpl {
 		for (int i = 0; i < numFields; i++) {
 			if (!this.populateInserterWithDefaultValues) {
 				this.inserter.setBytesNoEscapeNoQuotes(i + 1,
-						"DEFAULT".getBytes());
+						StringUtils.getBytes("DEFAULT"));
 				newRowData = null;
 			} else {
 				if (this.defaultColumnValue[i] != null) {
@@ -1215,7 +1207,7 @@ public class UpdatableResultSet extends ResultSetImpl {
 	 * @throws SQLException
 	 *             if an error occurs.
 	 */
-	public void realClose(boolean calledExplicitly) throws SQLException {
+	public synchronized void realClose(boolean calledExplicitly) throws SQLException {
 		if (this.isClosed) {
 			return;
 		}
@@ -1353,7 +1345,12 @@ public class UpdatableResultSet extends ResultSetImpl {
 				}
 			}
 
-			this.refresher.setBytesNoEscape(1, dataFrom);
+			if (this.fields[index].getvalueNeedsQuoting()) {
+				this.refresher.setBytesNoEscape(1, dataFrom);	
+			} else {
+				this.refresher.setBytesNoEscapeNoQuotes(1, dataFrom);
+			}
+			
 		} else {
 			for (int i = 0; i < numKeys; i++) {
 				byte[] dataFrom = null;
@@ -1549,8 +1546,13 @@ public class UpdatableResultSet extends ResultSetImpl {
 
 		for (int i = 0; i < numFields; i++) {
 			if (this.thisRow.getColumnValue(i) != null) {
-				this.updater.setBytes(i + 1, (byte[]) this.thisRow.getColumnValue(i),
-						this.fields[i].isBinary(), false);
+
+				if (this.fields[i].getvalueNeedsQuoting()) {
+					this.updater.setBytes(i + 1, (byte[]) this.thisRow.getColumnValue(i),
+							this.fields[i].isBinary(), false);
+				} else {
+					this.updater.setBytesNoEscapeNoQuotes(i + 1, (byte[]) this.thisRow.getColumnValue(i));
+				}
 			} else {
 				this.updater.setNull(i + 1, 0);
 			}
@@ -1654,7 +1656,7 @@ public class UpdatableResultSet extends ResultSetImpl {
 			if (x == null) {
 				this.thisRow.setColumnValue(columnIndex - 1, null);
 			} else {
-				this.thisRow.setColumnValue(columnIndex - 1, x.toString().getBytes());
+				this.thisRow.setColumnValue(columnIndex - 1, StringUtils.getBytes(x.toString()));
 			}
 		}
 	}
@@ -2504,7 +2506,7 @@ public class UpdatableResultSet extends ResultSetImpl {
 							this.connection.getServerCharacterEncoding(),
 							this.connection.parserKnowsUnicode(), getExceptionInterceptor()));
 				} else {
-					this.thisRow.setColumnValue(columnIndex - 1, x.getBytes());
+					this.thisRow.setColumnValue(columnIndex - 1, StringUtils.getBytes(x));
 				}
 			}
 		}

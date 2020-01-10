@@ -1,26 +1,25 @@
 /*
- Copyright  2002-2006 MySQL AB, 2008 Sun Microsystems
- All rights reserved. Use is subject to license terms.
+ Copyright (c) 2002, 2011, Oracle and/or its affiliates. All rights reserved.
+ 
+ 
 
-  The MySQL Connector/J is licensed under the terms of the GPL,
-  like most MySQL Connectors. There are special exceptions to the
-  terms and conditions of the GPL as it is applied to this software,
-  see the FLOSS License Exception available on mysql.com.
+  The MySQL Connector/J is licensed under the terms of the GPLv2
+  <http://www.gnu.org/licenses/old-licenses/gpl-2.0.html>, like most MySQL Connectors.
+  There are special exceptions to the terms and conditions of the GPLv2 as it is applied to
+  this software, see the FLOSS License Exception
+  <http://www.mysql.com/about/legal/licensing/foss-exception.html>.
 
-  This program is free software; you can redistribute it and/or
-  modify it under the terms of the GNU General Public License as
-  published by the Free Software Foundation; version 2 of the
-  License.
+  This program is free software; you can redistribute it and/or modify it under the terms
+  of the GNU General Public License as published by the Free Software Foundation; version 2
+  of the License.
 
-  This program is distributed in the hope that it will be useful,  
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
+  This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+  without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  See the GNU General Public License for more details.
 
-  You should have received a copy of the GNU General Public License
-  along with this program; if not, write to the Free Software
-  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
-  02110-1301 USA
+  You should have received a copy of the GNU General Public License along with this
+  program; if not, write to the Free Software Foundation, Inc., 51 Franklin St, Fifth
+  Floor, Boston, MA 02110-1301  USA
 
 
 
@@ -81,42 +80,43 @@ public class CharsetMapping {
 	static {	
 		HashMap tempNumBytesMap = new HashMap();
 		
-		tempNumBytesMap.put("big5", Constants.integerValueOf(2));
-		tempNumBytesMap.put("dec8" , Constants.integerValueOf(1));
-		tempNumBytesMap.put("cp850", Constants.integerValueOf(1));
-		tempNumBytesMap.put("hp8", Constants.integerValueOf(1));
-		tempNumBytesMap.put("koi8r", Constants.integerValueOf(1));
-		tempNumBytesMap.put("latin1", Constants.integerValueOf(1));
-		tempNumBytesMap.put("latin2", Constants.integerValueOf(1));
-		tempNumBytesMap.put("swe7", Constants.integerValueOf(1));
-		tempNumBytesMap.put("ascii", Constants.integerValueOf(1));
-		tempNumBytesMap.put("ujis", Constants.integerValueOf(3));
-		tempNumBytesMap.put("sjis", Constants.integerValueOf(2));
-		tempNumBytesMap.put("hebrew", Constants.integerValueOf(1));
-		tempNumBytesMap.put("tis620", Constants.integerValueOf(1));
-		tempNumBytesMap.put("euckr", Constants.integerValueOf(2));
-		tempNumBytesMap.put("koi8u", Constants.integerValueOf(1));
-		tempNumBytesMap.put("gb2312", Constants.integerValueOf(2));
-		tempNumBytesMap.put("greek", Constants.integerValueOf(1));
-		tempNumBytesMap.put("cp1250", Constants.integerValueOf(1));
-		tempNumBytesMap.put("gbk", Constants.integerValueOf(2));
-		tempNumBytesMap.put("latin5", Constants.integerValueOf(1));
-		tempNumBytesMap.put("armscii8", Constants.integerValueOf(1));
-		tempNumBytesMap.put("utf8", Constants.integerValueOf(3));
-		tempNumBytesMap.put("ucs2", Constants.integerValueOf(2));
-		tempNumBytesMap.put("cp866", Constants.integerValueOf(1));
-		tempNumBytesMap.put("keybcs2", Constants.integerValueOf(1));
-		tempNumBytesMap.put("macce", Constants.integerValueOf(1));
-		tempNumBytesMap.put("macroman", Constants.integerValueOf(1));
-		tempNumBytesMap.put("cp852" , Constants.integerValueOf(1));
-		tempNumBytesMap.put("latin7", Constants.integerValueOf(1));
-		tempNumBytesMap.put("cp1251", Constants.integerValueOf(1));
-		tempNumBytesMap.put("cp1256" , Constants.integerValueOf(1));
-		tempNumBytesMap.put("cp1257", Constants.integerValueOf(1));
-		tempNumBytesMap.put("binary", Constants.integerValueOf(1));
-		tempNumBytesMap.put("geostd8", Constants.integerValueOf(1));
-		tempNumBytesMap.put("cp932", Constants.integerValueOf(2));
-		tempNumBytesMap.put("eucjpms", Constants.integerValueOf(3));
+		tempNumBytesMap.put("big5", Integer.valueOf(2));
+		tempNumBytesMap.put("dec8" , Integer.valueOf(1));
+		tempNumBytesMap.put("cp850", Integer.valueOf(1));
+		tempNumBytesMap.put("hp8", Integer.valueOf(1));
+		tempNumBytesMap.put("koi8r", Integer.valueOf(1));
+		tempNumBytesMap.put("latin1", Integer.valueOf(1));
+		tempNumBytesMap.put("latin2", Integer.valueOf(1));
+		tempNumBytesMap.put("swe7", Integer.valueOf(1));
+		tempNumBytesMap.put("ascii", Integer.valueOf(1));
+		tempNumBytesMap.put("ujis", Integer.valueOf(3));
+		tempNumBytesMap.put("sjis", Integer.valueOf(2));
+		tempNumBytesMap.put("hebrew", Integer.valueOf(1));
+		tempNumBytesMap.put("tis620", Integer.valueOf(1));
+		tempNumBytesMap.put("euckr", Integer.valueOf(2));
+		tempNumBytesMap.put("koi8u", Integer.valueOf(1));
+		tempNumBytesMap.put("gb2312", Integer.valueOf(2));
+		tempNumBytesMap.put("greek", Integer.valueOf(1));
+		tempNumBytesMap.put("cp1250", Integer.valueOf(1));
+		tempNumBytesMap.put("gbk", Integer.valueOf(2));
+		tempNumBytesMap.put("latin5", Integer.valueOf(1));
+		tempNumBytesMap.put("armscii8", Integer.valueOf(1));
+		tempNumBytesMap.put("utf8", Integer.valueOf(3));
+		tempNumBytesMap.put("ucs2", Integer.valueOf(2));
+		tempNumBytesMap.put("cp866", Integer.valueOf(1));
+		tempNumBytesMap.put("keybcs2", Integer.valueOf(1));
+		tempNumBytesMap.put("macce", Integer.valueOf(1));
+		tempNumBytesMap.put("macroman", Integer.valueOf(1));
+		tempNumBytesMap.put("cp852" , Integer.valueOf(1));
+		tempNumBytesMap.put("latin7", Integer.valueOf(1));
+		tempNumBytesMap.put("cp1251", Integer.valueOf(1));
+		tempNumBytesMap.put("cp1256" , Integer.valueOf(1));
+		tempNumBytesMap.put("cp1257", Integer.valueOf(1));
+		tempNumBytesMap.put("binary", Integer.valueOf(1));
+		tempNumBytesMap.put("geostd8", Integer.valueOf(1));
+		tempNumBytesMap.put("cp932", Integer.valueOf(2));
+		tempNumBytesMap.put("eucjpms", Integer.valueOf(3));
+		tempNumBytesMap.put("utf8mb4", Integer.valueOf(4));
 		
 		STATIC_CHARSET_TO_NUM_BYTES_MAP = Collections.unmodifiableMap(
 				tempNumBytesMap);
@@ -177,6 +177,7 @@ public class CharsetMapping {
 			+ "MacRoman = 			macroman,"
 			+ "MacCentralEurope = 	macce,"
 			+ "UTF-8 = 		utf8,"
+			+ "UTF-8 =				*> 5.5.2 utf8mb4,"
 			+ "UnicodeBig = 	ucs2,"
 			+ "US-ASCII =		binary,"
 			+ "Cp943 =        	sjis,"
@@ -367,10 +368,10 @@ public class CharsetMapping {
 					null);
 			INDEX_TO_CHARSET[44] = getJavaEncodingForMysqlEncoding("macce",
 					null);
-			INDEX_TO_CHARSET[45] = getJavaEncodingForMysqlEncoding("macce",
-					null);
-			INDEX_TO_CHARSET[46] = getJavaEncodingForMysqlEncoding("macce",
-					null);
+			INDEX_TO_CHARSET[45] = getJavaEncodingForMysqlEncoding("utf8mb4",
+ 					null);
+			INDEX_TO_CHARSET[46] = getJavaEncodingForMysqlEncoding("utf8mb4",
+ 					null);
 			INDEX_TO_CHARSET[47] = getJavaEncodingForMysqlEncoding("latin1",
 					null);
 			INDEX_TO_CHARSET[48] = getJavaEncodingForMysqlEncoding(
@@ -631,6 +632,8 @@ public class CharsetMapping {
 		INDEX_TO_COLLATION[42] = "latin7_general_cs";
 		INDEX_TO_COLLATION[43] = "macce_bin";
 		INDEX_TO_COLLATION[44] = "cp1250_croatian_ci";
+		INDEX_TO_COLLATION[45] = "utf8mb4_general_ci";
+		INDEX_TO_COLLATION[46] = "utf8mb4_bin";
 		INDEX_TO_COLLATION[47] = "latin1_bin";
 		INDEX_TO_COLLATION[48] = "latin1_general_ci";
 		INDEX_TO_COLLATION[49] = "latin1_general_cs";
@@ -742,28 +745,6 @@ public class CharsetMapping {
 		INDEX_TO_COLLATION[211] ="utf8mb3_sinhala_ci";
 		INDEX_TO_COLLATION[254] ="utf8mb3_general_cs";
 		
-		INDEX_TO_COLLATION[45] ="utf8_general_ci";
-		INDEX_TO_COLLATION[46] ="utf8_bin";
-		INDEX_TO_COLLATION[224] ="utf8_unicode_ci";
-		INDEX_TO_COLLATION[225] ="utf8_icelandic_ci";
-		INDEX_TO_COLLATION[226] ="utf8_latvian_ci";
-		INDEX_TO_COLLATION[227] ="utf8_romanian_ci";
-		INDEX_TO_COLLATION[228] ="utf8_slovenian_ci";
-		INDEX_TO_COLLATION[229] ="utf8_polish_ci";
-		INDEX_TO_COLLATION[230] ="utf8_estonian_ci";
-		INDEX_TO_COLLATION[231] ="utf8_spanish_ci";
-		INDEX_TO_COLLATION[232] ="utf8_swedish_ci";
-		INDEX_TO_COLLATION[233] ="utf8_turkish_ci";
-		INDEX_TO_COLLATION[234] ="utf8_czech_ci";
-		INDEX_TO_COLLATION[235] ="utf8_danish_ci";
-		INDEX_TO_COLLATION[236] ="utf8_lithuanian_ci";
-		INDEX_TO_COLLATION[237] ="utf8_slovak_ci";
-		INDEX_TO_COLLATION[238] ="utf8_spanish2_ci";
-		INDEX_TO_COLLATION[239] ="utf8_roman_ci";
-		INDEX_TO_COLLATION[240] ="utf8_persian_ci";
-		INDEX_TO_COLLATION[241] ="utf8_esperanto_ci";
-		INDEX_TO_COLLATION[242] ="utf8_hungarian_ci";
-		INDEX_TO_COLLATION[243] ="utf8_sinhala_ci";
 		
 		INDEX_TO_COLLATION[54] = "utf16_general_ci";
 		INDEX_TO_COLLATION[55] = "utf16_bin";
@@ -811,13 +792,35 @@ public class CharsetMapping {
 		INDEX_TO_COLLATION[178] = "utf32_hungarian_ci";
 		INDEX_TO_COLLATION[179] = "utf32_sinhala_ci";
 		
+		INDEX_TO_COLLATION[224] = "utf8mb4_unicode_ci";
+		INDEX_TO_COLLATION[225] = "utf8mb4_icelandic_ci";
+		INDEX_TO_COLLATION[226] = "utf8mb4_latvian_ci";
+		INDEX_TO_COLLATION[227] = "utf8mb4_romanian_ci";
+		INDEX_TO_COLLATION[228] = "utf8mb4_slovenian_ci";
+		INDEX_TO_COLLATION[229] = "utf8mb4_polish_ci";
+		INDEX_TO_COLLATION[230] = "utf8mb4_estonian_ci";
+		INDEX_TO_COLLATION[231] = "utf8mb4_spanish_ci";
+		INDEX_TO_COLLATION[232] = "utf8mb4_swedish_ci";
+		INDEX_TO_COLLATION[233] = "utf8mb4_turkish_ci";
+		INDEX_TO_COLLATION[234] = "utf8mb4_czech_ci";
+		INDEX_TO_COLLATION[235] = "utf8mb4_danish_ci";
+		INDEX_TO_COLLATION[236] = "utf8mb4_lithuanian_ci";
+		INDEX_TO_COLLATION[237] = "utf8mb4_slovak_ci";
+		INDEX_TO_COLLATION[238] = "utf8mb4_spanish2_ci";
+		INDEX_TO_COLLATION[239] = "utf8mb4_roman_ci";
+		INDEX_TO_COLLATION[240] = "utf8mb4_persian_ci";
+		INDEX_TO_COLLATION[241] = "utf8mb4_esperanto_ci";
+		INDEX_TO_COLLATION[242] = "utf8mb4_hungarian_ci";
+		INDEX_TO_COLLATION[243] = "utf8mb4_sinhala_ci";
+		INDEX_TO_COLLATION[244] = "utf8mb4_german2_ci";
+		
 		Map indexMap = new TreeMap(String.CASE_INSENSITIVE_ORDER);
 		
 		for (int i = 0; i < INDEX_TO_CHARSET.length; i++) {
 			String mysqlEncodingName = INDEX_TO_CHARSET[i];
 			
 			if (mysqlEncodingName != null) {
-				indexMap.put(INDEX_TO_CHARSET[i], Constants.integerValueOf(i));
+				indexMap.put(INDEX_TO_CHARSET[i], Integer.valueOf(i));
 			}
 		}
 		

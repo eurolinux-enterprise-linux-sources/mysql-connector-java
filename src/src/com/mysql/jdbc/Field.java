@@ -1,6 +1,6 @@
 /*
- Copyright  2002-2004 MySQL AB, 2008 Sun Microsystems
- All rights reserved. Use is subject to license terms.
+ Copyright (c) 2002, 2010, Oracle and/or its affiliates. All rights reserved.
+ 
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of version 2 of the GNU General Public License as
@@ -54,7 +54,7 @@ public class Field {
 
 	private String collationName = null;
 
-	private ConnectionImpl connection = null;
+	private MySQLConnection connection = null;
 
 	private String databaseName = null;
 
@@ -113,11 +113,13 @@ public class Field {
 	private boolean isSingleBit;
 
 	private int maxBytesPerChar;
+	
+	private final boolean valueNeedsQuoting;
 
 	/**
 	 * Constructor used when communicating with 4.1 and newer servers
 	 */
-	Field(ConnectionImpl conn, byte[] buffer, int databaseNameStart,
+	Field(MySQLConnection conn, byte[] buffer, int databaseNameStart,
 			int databaseNameLength, int tableNameStart, int tableNameLength,
 			int originalTableNameStart, int originalTableNameLength,
 			int nameStart, int nameLength, int originalColumnNameStart,
@@ -288,6 +290,7 @@ public class Field {
 				break;
 			}
 		}
+		this.valueNeedsQuoting = determineNeedsQuoting();
 	}
 
 	private boolean shouldSetupForUtf8StringInBlob() throws SQLException {
@@ -354,7 +357,7 @@ public class Field {
 	/**
 	 * Constructor used when communicating with pre 4.1 servers
 	 */
-	Field(ConnectionImpl conn, byte[] buffer, int nameStart, int nameLength,
+	Field(MySQLConnection conn, byte[] buffer, int nameStart, int nameLength,
 			int tableNameStart, int tableNameLength, int length, int mysqlType,
 			short colFlag, int colDecimals) throws SQLException {
 		this(conn, buffer, -1, -1, tableNameStart, tableNameLength, -1, -1,
@@ -372,6 +375,7 @@ public class Field {
 		this.sqlType = jdbcType;
 		this.colFlag = 0;
 		this.colDecimals = 0;
+		this.valueNeedsQuoting = determineNeedsQuoting();
 	}
 	
 	/**
@@ -399,6 +403,7 @@ public class Field {
 		this.colFlag = 0;
 		this.colDecimals = 0;
 		this.charsetIndex = charsetIndex;
+		this.valueNeedsQuoting = determineNeedsQuoting();
 		
 		switch (this.sqlType) {
 		case Types.BINARY:
@@ -590,9 +595,13 @@ public class Field {
 
 	public synchronized int getMaxBytesPerCharacter() throws SQLException {
 		if (this.maxBytesPerChar == 0) {
-			this.maxBytesPerChar = this.connection.getMaxBytesPerChar(getCharacterSet());
+			if ((this.charsetIndex == 33) && (this.charsetName.equalsIgnoreCase("UTF-8"))) {
+				//Avoid mix with UTF8MB4 on 5.5.3+
+				this.maxBytesPerChar = 3;
+			} else {
+				this.maxBytesPerChar = this.connection.getMaxBytesPerChar(getCharacterSet());
+			}
 		}
-
 		return this.maxBytesPerChar;
 	}
 
@@ -727,7 +736,7 @@ public class Field {
 						}
 
 						try {
-							stringVal = new String(stringBytes, encoding);
+							stringVal = StringUtils.toString(stringBytes, encoding);
 						} catch (UnsupportedEncodingException ue) {
 							throw new RuntimeException(Messages
 									.getString("Field.12") + encoding //$NON-NLS-1$
@@ -956,7 +965,7 @@ public class Field {
 	 * @param conn
 	 *            DOCUMENT ME!
 	 */
-	public void setConnection(ConnectionImpl conn) {
+	public void setConnection(MySQLConnection conn) {
 		this.connection = conn;
 
 		if (this.charsetName == null || this.charsetIndex == 0) {
@@ -1049,5 +1058,32 @@ public class Field {
 
 	protected boolean isSingleBit() {
 		return this.isSingleBit;
+	}
+
+	protected boolean getvalueNeedsQuoting() {
+		return this.valueNeedsQuoting;
+	}
+
+	private boolean determineNeedsQuoting() {
+		boolean retVal = false;
+		
+		switch (this.sqlType) {
+		case Types.BIGINT:
+		case Types.BIT:
+		case Types.DECIMAL:
+		case Types.DOUBLE:
+		case Types.FLOAT:
+		case Types.INTEGER:
+		case Types.NUMERIC:
+		case Types.REAL:
+		case Types.SMALLINT:
+		case Types.TINYINT:
+			retVal = false;
+			break;
+		default: 
+			retVal = true;
+		}
+		return retVal;
+
 	}
 }

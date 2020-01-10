@@ -1,26 +1,24 @@
 /*
- Copyright  2002-2004 MySQL AB, 2008 Sun Microsystems
- All rights reserved. Use is subject to license terms.
+ Copyright (c) 2002, 2010, Oracle and/or its affiliates. All rights reserved.
+ 
 
-  The MySQL Connector/J is licensed under the terms of the GPL,
-  like most MySQL Connectors. There are special exceptions to the
-  terms and conditions of the GPL as it is applied to this software,
-  see the FLOSS License Exception available on mysql.com.
+  The MySQL Connector/J is licensed under the terms of the GPLv2
+  <http://www.gnu.org/licenses/old-licenses/gpl-2.0.html>, like most MySQL Connectors.
+  There are special exceptions to the terms and conditions of the GPLv2 as it is applied to
+  this software, see the FLOSS License Exception
+  <http://www.mysql.com/about/legal/licensing/foss-exception.html>.
 
-  This program is free software; you can redistribute it and/or
-  modify it under the terms of the GNU General Public License as
-  published by the Free Software Foundation; version 2 of the
-  License.
+  This program is free software; you can redistribute it and/or modify it under the terms
+  of the GNU General Public License as published by the Free Software Foundation; version 2
+  of the License.
 
-  This program is distributed in the hope that it will be useful,  
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
+  This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+  without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  See the GNU General Public License for more details.
 
-  You should have received a copy of the GNU General Public License
-  along with this program; if not, write to the Free Software
-  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
-  02110-1301 USA
+  You should have received a copy of the GNU General Public License along with this
+  program; if not, write to the Free Software Foundation, Inc., 51 Franklin St, Fifth
+  Floor, Boston, MA 02110-1301  USA
 
 
 
@@ -83,7 +81,6 @@ public class MetadataTest extends BaseTestCase {
 	 */
 	public void setUp() throws Exception {
 		super.setUp();
-		createTestTable();
 	}
 
 	/**
@@ -94,6 +91,8 @@ public class MetadataTest extends BaseTestCase {
 	 */
 	public void testForeignKeys() throws SQLException {
 		try {
+			createTestTable();
+
 			DatabaseMetaData dbmd = this.conn.getMetaData();
 			this.rs = dbmd.getImportedKeys(null, null, "child");
 
@@ -158,6 +157,14 @@ public class MetadataTest extends BaseTestCase {
 				this.rs.close();
 				this.rs = null;
 			}
+			this.stmt.executeUpdate("DROP TABLE IF EXISTS child");
+			this.stmt.executeUpdate("DROP TABLE IF EXISTS parent");
+			this.stmt.executeUpdate("DROP TABLE IF EXISTS cpd_foreign_4");
+			this.stmt.executeUpdate("DROP TABLE IF EXISTS cpd_foreign_3");
+			this.stmt.executeUpdate("DROP TABLE IF EXISTS cpd_foreign_2");
+			this.stmt.executeUpdate("DROP TABLE IF EXISTS cpd_foreign_1");
+			this.stmt.executeUpdate("DROP TABLE IF EXISTS fktable2");
+			this.stmt.executeUpdate("DROP TABLE IF EXISTS fktable1");
 		}
 
 	}
@@ -170,6 +177,7 @@ public class MetadataTest extends BaseTestCase {
 	 */
 	public void testGetPrimaryKeys() throws SQLException {
 		try {
+			createTable("multikey", "(d INT NOT NULL, b INT NOT NULL, a INT NOT NULL, c INT NOT NULL, PRIMARY KEY (d, b, a, c))");
 			DatabaseMetaData dbmd = this.conn.getMetaData();
 			this.rs = dbmd.getPrimaryKeys(this.conn.getCatalog(), "",
 					"multikey");
@@ -221,6 +229,7 @@ public class MetadataTest extends BaseTestCase {
 	}
 
 	private void createTestTable() throws SQLException {
+		//Needed for previous runs that did not clean-up
 		this.stmt.executeUpdate("DROP TABLE IF EXISTS child");
 		this.stmt.executeUpdate("DROP TABLE IF EXISTS parent");
 		this.stmt.executeUpdate("DROP TABLE IF EXISTS multikey");
@@ -234,13 +243,22 @@ public class MetadataTest extends BaseTestCase {
 		createTable("parent", "(parent_id INT NOT NULL, PRIMARY KEY (parent_id))", "INNODB");
 		createTable("child", "(child_id INT, parent_id_fk INT, INDEX par_ind (parent_id_fk), "
 						+ "FOREIGN KEY (parent_id_fk) REFERENCES parent(parent_id)) ", "INNODB");
-		createTable("multikey", "(d INT NOT NULL, b INT NOT NULL, a INT NOT NULL, c INT NOT NULL, PRIMARY KEY (d, b, a, c))");
 
 		// Test compound foreign keys
-		createTable("cpd_foreign_1", "("
-				+ "id int(8) not null auto_increment primary key,"
-				+ "name varchar(255) not null unique," + "key (id)"
-				+ ")", "InnoDB");
+		try{
+			createTable("cpd_foreign_1", "("
+					+ "id int(8) not null auto_increment primary key,"
+					+ "name varchar(255) not null unique," + "key (id)"
+					+ ")", "InnoDB");
+		} catch (SQLException sqlEx) {
+			if (sqlEx.getMessage().indexOf("max key length") != -1) {
+				createTable("cpd_foreign_1", "("
+						+ "id int(8) not null auto_increment primary key,"
+						+ "name varchar(180) not null unique," + "key (id)"
+						+ ")", "InnoDB");
+			}
+		}
+
 		createTable("cpd_foreign_2", "("
 				+ "id int(8) not null auto_increment primary key,"
 				+ "key (id)," + "name varchar(255)" + ") ", "InnoDB");
@@ -286,11 +304,8 @@ public class MetadataTest extends BaseTestCase {
 				if ("VIEW".equalsIgnoreCase(this.rs.getString(1))) {
 
 					this.stmt
-							.executeUpdate("DROP VIEW IF EXISTS vTestViewMetaData");
-					this.stmt
-							.executeUpdate("DROP TABLE IF EXISTS testViewMetaData");
-					this.stmt
-							.executeUpdate("CREATE TABLE testViewMetaData (field1 INT)");
+						.executeUpdate("DROP VIEW IF EXISTS vTestViewMetaData");
+					createTable("testViewMetaData", "(field1 INT)");
 					this.stmt
 							.executeUpdate("CREATE VIEW vTestViewMetaData AS SELECT field1 FROM testViewMetaData");
 
@@ -334,6 +349,8 @@ public class MetadataTest extends BaseTestCase {
 			if (this.rs != null) {
 				this.rs.close();
 			}
+			this.stmt
+				.executeUpdate("DROP VIEW IF EXISTS vTestViewMetaData");
 		}
 	}
 
@@ -353,10 +370,7 @@ public class MetadataTest extends BaseTestCase {
 				assertTrue(rsmd.isReadOnly(1));
 
 				try {
-					this.stmt
-							.executeUpdate("DROP TABLE IF EXISTS testRSMDIsReadOnly");
-					this.stmt
-							.executeUpdate("CREATE TABLE testRSMDIsReadOnly (field1 INT)");
+					createTable("testRSMDIsReadOnly", "(field1 INT)");
 					this.stmt
 							.executeUpdate("INSERT INTO testRSMDIsReadOnly VALUES (1)");
 
@@ -368,8 +382,6 @@ public class MetadataTest extends BaseTestCase {
 					assertTrue(rsmd.isReadOnly(2));
 					assertTrue(!rsmd.isReadOnly(3));
 				} finally {
-					this.stmt
-							.executeUpdate("DROP TABLE IF EXISTS testRSMDIsReadOnly");
 				}
 			} else {
 				assertTrue(rsmd.isReadOnly(1) == false);
@@ -384,9 +396,7 @@ public class MetadataTest extends BaseTestCase {
 	public void testBitType() throws Exception {
 		if (versionMeetsMinimum(5, 0, 3)) {
 			try {
-				this.stmt.executeUpdate("DROP TABLE IF EXISTS testBitType");
-				this.stmt
-						.executeUpdate("CREATE TABLE testBitType (field1 BIT, field2 BIT, field3 BIT)");
+				createTable("testBitType", "(field1 BIT, field2 BIT, field3 BIT)");
 				this.stmt
 						.executeUpdate("INSERT INTO testBitType VALUES (1, 0, NULL)");
 				this.rs = this.stmt
@@ -417,14 +427,11 @@ public class MetadataTest extends BaseTestCase {
 				assertEquals(asBytesFalse[0], 0);
 				assertEquals(asBytesNull, null);
 
-				this.stmt.executeUpdate("DROP TABLE IF EXISTS testBitField");
-				this.stmt
-						.executeUpdate("CREATE TABLE testBitField(field1 BIT(9))");
+				createTable("testBitField", "(field1 BIT(9))");
 				this.rs = this.stmt
 						.executeQuery("SELECT field1 FROM testBitField");
 				System.out.println(this.rs.getMetaData().getColumnClassName(1));
 			} finally {
-				this.stmt.executeUpdate("DROP TABLE IF EXISTS testBitType");
 			}
 		}
 	}
@@ -523,8 +530,7 @@ public class MetadataTest extends BaseTestCase {
      */
     public void testGetPrimaryKeysUsingInfoShcema() throws Exception {
         if (versionMeetsMinimum(5, 0, 7)) {
-            this.stmt.executeUpdate("DROP TABLE IF EXISTS t1");
-            this.stmt.executeUpdate("CREATE TABLE t1 (c1 int(1) primary key)");
+        	createTable("t1", "(c1 int(1) primary key)");
             Properties props = new Properties();
             props.put("useInformationSchema", "true");
             Connection conn1 = null;
@@ -548,8 +554,7 @@ public class MetadataTest extends BaseTestCase {
      */
     public void testGetIndexInfoUsingInfoSchema() throws Exception {
         if (versionMeetsMinimum(5, 0, 7)) {
-            this.stmt.executeUpdate("DROP TABLE IF EXISTS t1");
-            this.stmt.executeUpdate("CREATE TABLE t1 (c1 int(1))");
+        	createTable("t1", "(c1 int(1))");
             this.stmt.executeUpdate("CREATE INDEX index1 ON t1 (c1)");
 
             Connection conn1 = null;
@@ -576,8 +581,7 @@ public class MetadataTest extends BaseTestCase {
      */
     public void testGetColumnsUsingInfoSchema() throws Exception {
         if (versionMeetsMinimum(5, 0, 7)) {
-            this.stmt.executeUpdate("DROP TABLE IF EXISTS t1");
-            this.stmt.executeUpdate("CREATE TABLE t1 (c1 char(1))");
+        	createTable("t1", "(c1 char(1))");
             Properties props = new Properties();
             props.put("useInformationSchema", "true");
             Connection conn1 = null;
@@ -603,12 +607,9 @@ public class MetadataTest extends BaseTestCase {
      */
     public void testGetTablesUsingInfoSchema() throws Exception {
         if (versionMeetsMinimum(5, 0, 7)) {
-            this.stmt.executeUpdate("DROP TABLE IF EXISTS `t1-1`");
-            this.stmt.executeUpdate("CREATE TABLE `t1-1` (c1 char(1))");
-            this.stmt.executeUpdate("DROP TABLE IF EXISTS `t1-2`");
-            this.stmt.executeUpdate("CREATE TABLE `t1-2` (c1 char(1))");
-            this.stmt.executeUpdate("DROP TABLE IF EXISTS `t2`");
-            this.stmt.executeUpdate("CREATE TABLE `t2` (c1 char(1))");
+            createTable("`t1-1`", "(c1 char(1))");
+            createTable("`t1-2`", "(c1 char(1))");
+            createTable("`t2`", "(c1 char(1))");
             Set tableNames = new HashSet();
             tableNames.add("t1-1");
             tableNames.add("t1-2");
@@ -652,12 +653,15 @@ public class MetadataTest extends BaseTestCase {
 	            try {
 	                conn1 = getConnectionWithProps(props);
 	                stmt1 = conn1.createStatement();
-	                stmt1.executeUpdate("DROP TABLE IF EXISTS t1");
-	                stmt1.executeUpdate("CREATE TABLE t1 (c1 int)");
+	                createTable("t1", "(c1 int)");
 	                this.rs = stmt1.executeQuery("SELECT USER()");
 	                this.rs.next();
 	                String user = this.rs.getString(1);
 	                List userHost = StringUtils.split(user, "@", false);
+	                if (userHost.size() < 2) {
+	                	fail("This test requires a JDBC URL with a user, and won't work with the anonymous user. " +
+	                			"You can skip this test by setting the system property " + dontRunPropertyName);
+	                }
 	                userHostQuoted = "'" + userHost.get(0) + "'@'" + userHost.get(1) + "'";
 	                
 	                try {
@@ -666,11 +670,9 @@ public class MetadataTest extends BaseTestCase {
 	                	grantFailed = false;
 	                	
 	                } catch (SQLException sqlEx) {
-	                	logDebug("This testcase needs to be run with a URL that allows the user to issue GRANTs "
+	                	fail("This testcase needs to be run with a URL that allows the user to issue GRANTs "
 	                			+ " in the current database. You can skip this test by setting the system property \""
 	                			+ dontRunPropertyName + "\".");
-	                	
-	                	grantFailed = true;
 	                }
 	                
 	                if (!grantFailed) {
@@ -685,8 +687,6 @@ public class MetadataTest extends BaseTestCase {
 	            } finally {
 		            if (stmt1 != null) {
 		       
-		            	stmt1.executeUpdate("DROP TABLE IF EXISTS t1");
-		            	
 		            	if (!grantFailed) {
 		            		stmt1.executeUpdate("REVOKE UPDATE (c1) ON t1 FROM " + userHostQuoted);
 		            	}
@@ -708,8 +708,7 @@ public class MetadataTest extends BaseTestCase {
      */
     public void testGetProceduresUsingInfoSchema() throws Exception {
         if (versionMeetsMinimum(5, 0, 7)) {
-            this.stmt.executeUpdate("DROP PROCEDURE IF EXISTS sp1");
-            this.stmt.executeUpdate("CREATE PROCEDURE sp1()\n BEGIN\n" + "SELECT 1;" + "end\n");
+        	createProcedure("sp1", "()\n BEGIN\n" + "SELECT 1;" + "end\n");
             Properties props = new Properties();
             props.put("useInformationSchema", "true");
             Connection conn1 = null;
@@ -724,7 +723,6 @@ public class MetadataTest extends BaseTestCase {
                 if (conn1 != null) {
 					conn1.close();
 				}
-                this.stmt.executeUpdate("DROP PROCEDURE sp1");
             }
         }
     }

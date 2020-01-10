@@ -1,26 +1,24 @@
 /*
- Copyright  2002-2007 MySQL AB, 2008-2009 Sun Microsystems
- All rights reserved. Use is subject to license terms.
+ Copyright (c) 2002, 2010, Oracle and/or its affiliates. All rights reserved.
+ 
 
-  The MySQL Connector/J is licensed under the terms of the GPL,
-  like most MySQL Connectors. There are special exceptions to the
-  terms and conditions of the GPL as it is applied to this software,
-  see the FLOSS License Exception available on mysql.com.
+  The MySQL Connector/J is licensed under the terms of the GPLv2
+  <http://www.gnu.org/licenses/old-licenses/gpl-2.0.html>, like most MySQL Connectors.
+  There are special exceptions to the terms and conditions of the GPLv2 as it is applied to
+  this software, see the FLOSS License Exception
+  <http://www.mysql.com/about/legal/licensing/foss-exception.html>.
 
-  This program is free software; you can redistribute it and/or
-  modify it under the terms of the GNU General Public License as
-  published by the Free Software Foundation; version 2 of the
-  License.
+  This program is free software; you can redistribute it and/or modify it under the terms
+  of the GNU General Public License as published by the Free Software Foundation; version 2
+  of the License.
 
-  This program is distributed in the hope that it will be useful,  
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
+  This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+  without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  See the GNU General Public License for more details.
 
-  You should have received a copy of the GNU General Public License
-  along with this program; if not, write to the Free Software
-  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
-  02110-1301 USA
+  You should have received a copy of the GNU General Public License along with this
+  program; if not, write to the Free Software Foundation, Inc., 51 Franklin St, Fifth
+  Floor, Boston, MA 02110-1301  USA
 
 
 
@@ -38,6 +36,7 @@ import java.util.TimeZone;
 import com.mysql.jdbc.Connection;
 import com.mysql.jdbc.ExceptionInterceptor;
 import com.mysql.jdbc.Extension;
+import com.mysql.jdbc.MySQLConnection;
 import com.mysql.jdbc.MysqlErrorNumbers;
 import com.mysql.jdbc.SQLError;
 import com.mysql.jdbc.Util;
@@ -398,21 +397,6 @@ public class ConnectionWrapper extends WrapperBase implements Connection {
 		// compiler can't tell
 	}
 
-	/**
-	 * Passes call to method on physical connection instance. Notifies listeners
-	 * of any caught exceptions before re-throwing to client.
-	 * 
-	 * @see java.sql.Connection#setTypeMap()
-	 */
-	public void setTypeMap(java.util.Map map) throws SQLException {
-		checkClosed();
-
-		try {
-			this.mc.setTypeMap(map);
-		} catch (SQLException sqlException) {
-			checkAndFireConnectionError(sqlException);
-		}
-	}
 
 	/**
 	 * Passes call to method on physical connection instance. Notifies listeners
@@ -2594,6 +2578,22 @@ public class ConnectionWrapper extends WrapperBase implements Connection {
 	public void setLoadBalanceBlacklistTimeout(int loadBalanceBlacklistTimeout) {
 		this.mc.setLoadBalanceBlacklistTimeout(loadBalanceBlacklistTimeout);
 	}
+	public int getLoadBalancePingTimeout() {
+		return this.mc.getLoadBalancePingTimeout();
+	}
+
+	public void setLoadBalancePingTimeout(int loadBalancePingTimeout) {
+		this.mc.setLoadBalancePingTimeout(loadBalancePingTimeout);
+	}
+	
+	public boolean getLoadBalanceValidateConnectionOnSwapServer() {
+		return this.mc.getLoadBalanceValidateConnectionOnSwapServer();
+	}
+
+	public void setLoadBalanceValidateConnectionOnSwapServer(
+			boolean loadBalanceValidateConnectionOnSwapServer) {
+		this.mc.setLoadBalanceValidateConnectionOnSwapServer(loadBalanceValidateConnectionOnSwapServer);
+	}
 	
 	public void setRetriesAllDown(int retriesAllDown) {
 		this.mc.setRetriesAllDown(retriesAllDown);
@@ -2630,5 +2630,129 @@ public class ConnectionWrapper extends WrapperBase implements Connection {
 	
 	public Properties getProperties() {
 		return this.mc.getProperties();
+	}
+
+   public String getHost() {
+      return this.mc.getHost();
+   }
+
+   public void setProxy(MySQLConnection conn) {
+      this.mc.setProxy(conn);
+   }
+
+ 	public boolean getRetainStatementAfterResultSetClose() {
+		return this.mc.getRetainStatementAfterResultSetClose();
+	}
+
+   public int getMaxAllowedPacket() {
+		return this.mc.getMaxAllowedPacket();
+	}
+   
+	public String getLoadBalanceConnectionGroup() {
+		return this.mc.getLoadBalanceConnectionGroup();
+	}
+
+	public boolean getLoadBalanceEnableJMX() {
+		return this.mc.getLoadBalanceEnableJMX();
+	}
+
+	public String getLoadBalanceExceptionChecker() {
+		return this.mc
+				.getLoadBalanceExceptionChecker();
+	}
+
+	public String getLoadBalanceSQLExceptionSubclassFailover() {
+		return this.mc
+				.getLoadBalanceSQLExceptionSubclassFailover();
+	}
+
+	public String getLoadBalanceSQLStateFailover() {
+		return this.mc
+				.getLoadBalanceSQLStateFailover();
+	}
+
+	public void setLoadBalanceConnectionGroup(String loadBalanceConnectionGroup) {
+		this.mc
+				.setLoadBalanceConnectionGroup(loadBalanceConnectionGroup);
+		
+	}
+
+	public void setLoadBalanceEnableJMX(boolean loadBalanceEnableJMX) {
+		this.mc
+				.setLoadBalanceEnableJMX(loadBalanceEnableJMX);
+		
+	}
+
+	public void setLoadBalanceExceptionChecker(
+			String loadBalanceExceptionChecker) {
+		this.mc
+				.setLoadBalanceExceptionChecker(loadBalanceExceptionChecker);
+		
+	}
+
+	public void setLoadBalanceSQLExceptionSubclassFailover(
+			String loadBalanceSQLExceptionSubclassFailover) {
+		this.mc
+				.setLoadBalanceSQLExceptionSubclassFailover(loadBalanceSQLExceptionSubclassFailover);
+		
+	}
+
+	public void setLoadBalanceSQLStateFailover(
+			String loadBalanceSQLStateFailover) {
+		this.mc
+				.setLoadBalanceSQLStateFailover(loadBalanceSQLStateFailover);
+		
+	}
+
+
+	public String getLoadBalanceAutoCommitStatementRegex() {
+		return this.mc.getLoadBalanceAutoCommitStatementRegex();
+	}
+
+	public int getLoadBalanceAutoCommitStatementThreshold() {
+		return this.mc.getLoadBalanceAutoCommitStatementThreshold();
+	}
+
+	public void setLoadBalanceAutoCommitStatementRegex(
+			String loadBalanceAutoCommitStatementRegex) {
+		this.mc.setLoadBalanceAutoCommitStatementRegex(loadBalanceAutoCommitStatementRegex);
+		
+	}
+
+	public void setLoadBalanceAutoCommitStatementThreshold(
+			int loadBalanceAutoCommitStatementThreshold) {
+		this.mc.setLoadBalanceAutoCommitStatementThreshold(loadBalanceAutoCommitStatementThreshold);
+		
+	}
+
+	public void setTypeMap(Map<String, Class<?>> map) throws SQLException {
+		checkClosed();
+
+		try {
+			this.mc.setTypeMap(map);
+		} catch (SQLException sqlException) {
+			checkAndFireConnectionError(sqlException);
+		}
+	}
+
+	public boolean getIncludeThreadDumpInDeadlockExceptions() {
+		return this.mc.getIncludeThreadDumpInDeadlockExceptions();
+	}
+
+	public void setIncludeThreadDumpInDeadlockExceptions(boolean flag) {
+		this.mc.setIncludeThreadDumpInDeadlockExceptions(flag);
+		
+	}
+
+	public boolean getIncludeThreadNamesAsStatementComment() {
+		return this.mc.getIncludeThreadNamesAsStatementComment();
+	}
+
+	public void setIncludeThreadNamesAsStatementComment(boolean flag) {
+		this.mc.setIncludeThreadNamesAsStatementComment(flag);
+	}
+
+	public boolean isServerLocal() throws SQLException {
+		return this.mc.isServerLocal();
 	}
 }

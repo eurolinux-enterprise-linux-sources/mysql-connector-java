@@ -1,26 +1,24 @@
 /*
- Copyright  2002-2004 MySQL AB, 2008 Sun Microsystems
- All rights reserved. Use is subject to license terms.
+ Copyright (c) 2002, 2010, Oracle and/or its affiliates. All rights reserved.
+ 
 
-  The MySQL Connector/J is licensed under the terms of the GPL,
-  like most MySQL Connectors. There are special exceptions to the
-  terms and conditions of the GPL as it is applied to this software,
-  see the FLOSS License Exception available on mysql.com.
+  The MySQL Connector/J is licensed under the terms of the GPLv2
+  <http://www.gnu.org/licenses/old-licenses/gpl-2.0.html>, like most MySQL Connectors.
+  There are special exceptions to the terms and conditions of the GPLv2 as it is applied to
+  this software, see the FLOSS License Exception
+  <http://www.mysql.com/about/legal/licensing/foss-exception.html>.
 
-  This program is free software; you can redistribute it and/or
-  modify it under the terms of the GNU General Public License as
-  published by the Free Software Foundation; version 2 of the
-  License.
+  This program is free software; you can redistribute it and/or modify it under the terms
+  of the GNU General Public License as published by the Free Software Foundation; version 2
+  of the License.
 
-  This program is distributed in the hope that it will be useful,  
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
+  This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+  without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  See the GNU General Public License for more details.
 
-  You should have received a copy of the GNU General Public License
-  along with this program; if not, write to the Free Software
-  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
-  02110-1301 USA
+  You should have received a copy of the GNU General Public License along with this
+  program; if not, write to the Free Software Foundation, Inc., 51 Franklin St, Fifth
+  Floor, Boston, MA 02110-1301  USA
 
 
  
@@ -179,8 +177,9 @@ public final class PooledConnectionRegressionTest extends BaseTestCase {
 	/**
 	 * After the test is run.
 	 */
-	public void tearDown() {
+	public void tearDown() throws Exception {
 		this.cpds = null;
+		super.tearDown();
 	}
 
 	/**
@@ -308,45 +307,39 @@ public final class PooledConnectionRegressionTest extends BaseTestCase {
 
 		pc.addConnectionEventListener(conListener);
 
+		createTable("testPacketTooLarge", "(field1 LONGBLOB)");
+
+		Connection connFromPool = pc.getConnection();
+		PreparedStatement pstmtFromPool = ((ConnectionWrapper) connFromPool)
+				.clientPrepare("INSERT INTO testPacketTooLarge VALUES (?)");
+
+		this.rs = this.stmt
+				.executeQuery("SHOW VARIABLES LIKE 'max_allowed_packet'");
+		this.rs.next();
+
+		int maxAllowedPacket = this.rs.getInt(2);
+
+		int numChars = (int) (maxAllowedPacket * 1.2);
+
+		pstmtFromPool.setBinaryStream(
+				1,
+				new BufferedInputStream(new FileInputStream(newTempBinaryFile(
+						"testPacketTooLargeException", numChars))), numChars);
+
 		try {
-			this.stmt.executeUpdate("DROP TABLE IF EXISTS testPacketTooLarge");
-			this.stmt
-					.executeUpdate("CREATE TABLE testPacketTooLarge(field1 LONGBLOB)");
-
-			Connection connFromPool = pc.getConnection();
-			PreparedStatement pstmtFromPool = ((ConnectionWrapper) connFromPool)
-					.clientPrepare("INSERT INTO testPacketTooLarge VALUES (?)");
-
-			this.rs = this.stmt
-					.executeQuery("SHOW VARIABLES LIKE 'max_allowed_packet'");
-			this.rs.next();
-
-			int maxAllowedPacket = this.rs.getInt(2);
-
-			int numChars = (int) (maxAllowedPacket * 1.2);
-
-			pstmtFromPool.setBinaryStream(1, new BufferedInputStream(
-					new FileInputStream(newTempBinaryFile(
-							"testPacketTooLargeException", numChars))),
-					numChars);
-
-			try {
-				pstmtFromPool.executeUpdate();
-				fail("Expecting PacketTooLargeException");
-			} catch (PacketTooBigException ptbe) {
-				// We're expecting this one...
-			}
-
-			// This should still work okay, even though the last query on the
-			// same
-			// connection didn't...
-			connFromPool.createStatement().executeQuery("SELECT 1");
-
-			assertTrue(this.connectionErrorEventCount == 0);
-			assertTrue(this.closeEventCount == 0);
-		} finally {
-			this.stmt.executeUpdate("DROP TABLE IF EXISTS testPacketTooLarge");
+			pstmtFromPool.executeUpdate();
+			fail("Expecting PacketTooLargeException");
+		} catch (PacketTooBigException ptbe) {
+			// We're expecting this one...
 		}
+
+		// This should still work okay, even though the last query on the
+		// same
+		// connection didn't...
+		connFromPool.createStatement().executeQuery("SELECT 1");
+
+		assertTrue(this.connectionErrorEventCount == 0);
+		assertTrue(this.closeEventCount == 0);
 	}
 
 	/**
@@ -412,35 +405,35 @@ public final class PooledConnectionRegressionTest extends BaseTestCase {
 			System.out.println("Connection error: " + event.getSQLException());
 		}
 	}
-	
+
 	/**
-	 * Tests fix for BUG#35489 - Prepared statements from pooled connections cause NPE
-	 * when closed() under JDBC4
+	 * Tests fix for BUG#35489 - Prepared statements from pooled connections
+	 * cause NPE when closed() under JDBC4
 	 * 
-	 * @throws Exception if the test fails
+	 * @throws Exception
+	 *             if the test fails
 	 */
 	public void testBug35489() throws Exception {
-		try {
-			MysqlConnectionPoolDataSource pds = new MysqlConnectionPoolDataSource();
-			pds.setUrl(dbUrl);
-			this.pstmt = pds.getPooledConnection().getConnection().prepareStatement("SELECT 1");
-			this.pstmt.execute();
-			this.pstmt.close();
-			
-			MysqlXADataSource xads = new MysqlXADataSource();
-			xads.setUrl(dbUrl);
-			this.pstmt = xads.getXAConnection().getConnection().prepareStatement("SELECT 1");
-			this.pstmt.execute();
-			this.pstmt.close();
-			
-			xads = new MysqlXADataSource();
-			xads.setUrl(dbUrl);
-			xads.setPinGlobalTxToPhysicalConnection(true);
-			this.pstmt = xads.getXAConnection().getConnection().prepareStatement("SELECT 1");
-			this.pstmt.execute();
-			this.pstmt.close();
-		} finally {
-			closeMemberJDBCResources();
-		}
+		MysqlConnectionPoolDataSource pds = new MysqlConnectionPoolDataSource();
+		pds.setUrl(dbUrl);
+		this.pstmt = pds.getPooledConnection().getConnection()
+				.prepareStatement("SELECT 1");
+		this.pstmt.execute();
+		this.pstmt.close();
+
+		MysqlXADataSource xads = new MysqlXADataSource();
+		xads.setUrl(dbUrl);
+		this.pstmt = xads.getXAConnection().getConnection()
+				.prepareStatement("SELECT 1");
+		this.pstmt.execute();
+		this.pstmt.close();
+
+		xads = new MysqlXADataSource();
+		xads.setUrl(dbUrl);
+		xads.setPinGlobalTxToPhysicalConnection(true);
+		this.pstmt = xads.getXAConnection().getConnection()
+				.prepareStatement("SELECT 1");
+		this.pstmt.execute();
+		this.pstmt.close();
 	}
 }

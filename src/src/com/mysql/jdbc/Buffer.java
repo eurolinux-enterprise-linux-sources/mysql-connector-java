@@ -1,26 +1,24 @@
 /*
- Copyright  2002-2005 MySQL AB, 2008 Sun Microsystems
- All rights reserved. Use is subject to license terms.
+ Copyright (c) 2002, 2010, Oracle and/or its affiliates. All rights reserved.
+ 
 
-  The MySQL Connector/J is licensed under the terms of the GPL,
-  like most MySQL Connectors. There are special exceptions to the
-  terms and conditions of the GPL as it is applied to this software,
-  see the FLOSS License Exception available on mysql.com.
+  The MySQL Connector/J is licensed under the terms of the GPLv2
+  <http://www.gnu.org/licenses/old-licenses/gpl-2.0.html>, like most MySQL Connectors.
+  There are special exceptions to the terms and conditions of the GPLv2 as it is applied to
+  this software, see the FLOSS License Exception
+  <http://www.mysql.com/about/legal/licensing/foss-exception.html>.
 
-  This program is free software; you can redistribute it and/or
-  modify it under the terms of the GNU General Public License as
-  published by the Free Software Foundation; version 2 of the
-  License.
+  This program is free software; you can redistribute it and/or modify it under the terms
+  of the GNU General Public License as published by the Free Software Foundation; version 2
+  of the License.
 
-  This program is distributed in the hope that it will be useful,  
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
+  This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+  without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  See the GNU General Public License for more details.
 
-  You should have received a copy of the GNU General Public License
-  along with this program; if not, write to the Free Software
-  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
-  02110-1301 USA
+  You should have received a copy of the GNU General Public License along with this
+  program; if not, write to the Free Software Foundation, Inc., 51 Franklin St, Fifth
+  Floor, Boston, MA 02110-1301  USA
 
 
 
@@ -37,7 +35,7 @@ import java.sql.SQLException;
  * @version $Id$
  * @author Mark Matthews
  */
-class Buffer {
+public class Buffer {
 	static final int MAX_BYTES_TO_DUMP = 512;
 
 	static final int NO_LENGTH_LIMIT = -1;
@@ -419,7 +417,7 @@ class Buffer {
 			i++;
 		}
 
-		String s = new String(this.byteBuffer, this.position, len);
+		String s = StringUtils.toString(this.byteBuffer, this.position, len);
 		this.position += (len + 1); // update cursor
 
 		return s;
@@ -436,7 +434,7 @@ class Buffer {
 		}
 
 		try {
-			return new String(this.byteBuffer, this.position, len, encoding);
+			return StringUtils.toString(this.byteBuffer, this.position, len, encoding);
 		} catch (UnsupportedEncodingException uEE) {
 			throw SQLError.createSQLException(Messages.getString("ByteArrayBuffer.1") //$NON-NLS-1$
 					+ encoding + "'", SQLError.SQL_STATE_ILLEGAL_ARGUMENT, exceptionInterceptor); //$NON-NLS-1$
@@ -575,7 +573,7 @@ class Buffer {
 	// encoding
 	final void writeLenString(String s, String encoding, String serverEncoding,
 			SingleByteCharsetConverter converter, boolean parserKnowsUnicode,
-			ConnectionImpl conn)
+			MySQLConnection conn)
 			throws UnsupportedEncodingException, SQLException {
 		byte[] b = null;
 
@@ -634,7 +632,7 @@ class Buffer {
 	}
 	
 	//	 Write null-terminated string in the given encoding
-	final void writeString(String s, String encoding, ConnectionImpl conn) throws SQLException {
+	final void writeString(String s, String encoding, MySQLConnection conn) throws SQLException {
 		ensureCapacity((s.length() * 2) + 1);
 		try {
 			writeStringNoNull(s, encoding, encoding, false, conn);
@@ -649,7 +647,7 @@ class Buffer {
 	final void writeStringNoNull(String s) throws SQLException {
 		int len = s.length();
 		ensureCapacity(len * 2);
-		System.arraycopy(s.getBytes(), 0, this.byteBuffer, this.position, len);
+		System.arraycopy(StringUtils.getBytes(s), 0, this.byteBuffer, this.position, len);
 		this.position += len;
 
 		// for (int i = 0; i < len; i++)
@@ -661,7 +659,7 @@ class Buffer {
 	// Write a String using the specified character
 	// encoding
 	final void writeStringNoNull(String s, String encoding,
-			String serverEncoding, boolean parserKnowsUnicode, ConnectionImpl conn)
+			String serverEncoding, boolean parserKnowsUnicode, MySQLConnection conn)
 			throws UnsupportedEncodingException, SQLException {
 		byte[] b = StringUtils.getBytes(s, encoding, serverEncoding,
 				parserKnowsUnicode, conn, conn.getExceptionInterceptor());

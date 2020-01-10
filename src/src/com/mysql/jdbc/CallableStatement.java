@@ -1,26 +1,23 @@
 /*
- Copyright  2002-2007 MySQL AB, 2008 Sun Microsystems
- All rights reserved. Use is subject to license terms.
+  Copyright (c) 2002, 2011, Oracle and/or its affiliates. All rights reserved.
 
-  The MySQL Connector/J is licensed under the terms of the GPL,
-  like most MySQL Connectors. There are special exceptions to the
-  terms and conditions of the GPL as it is applied to this software,
-  see the FLOSS License Exception available on mysql.com.
+  The MySQL Connector/J is licensed under the terms of the GPLv2
+  <http://www.gnu.org/licenses/old-licenses/gpl-2.0.html>, like most MySQL Connectors.
+  There are special exceptions to the terms and conditions of the GPLv2 as it is applied to
+  this software, see the FLOSS License Exception
+  <http://www.mysql.com/about/legal/licensing/foss-exception.html>.
 
-  This program is free software; you can redistribute it and/or
-  modify it under the terms of the GNU General Public License as
-  published by the Free Software Foundation; version 2 of the
-  License.
+  This program is free software; you can redistribute it and/or modify it under the terms
+  of the GNU General Public License as published by the Free Software Foundation; version 2
+  of the License.
 
-  This program is distributed in the hope that it will be useful,  
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
+  This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+  without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  See the GNU General Public License for more details.
 
-  You should have received a copy of the GNU General Public License
-  along with this program; if not, write to the Free Software
-  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
-  02110-1301 USA
+  You should have received a copy of the GNU General Public License along with this
+  program; if not, write to the Free Software Foundation, Inc., 51 Franklin St, Fifth
+  Floor, Boston, MA 02110-1301  USA
  
  */
 package com.mysql.jdbc;
@@ -69,12 +66,12 @@ public class CallableStatement extends PreparedStatement implements
 				JDBC_4_CSTMT_2_ARGS_CTOR = Class.forName(
 						"com.mysql.jdbc.JDBC4CallableStatement")
 						.getConstructor(
-								new Class[] { ConnectionImpl.class,
+								new Class[] { MySQLConnection.class,
 										CallableStatementParamInfo.class });
 				JDBC_4_CSTMT_4_ARGS_CTOR = Class.forName(
 						"com.mysql.jdbc.JDBC4CallableStatement")
 						.getConstructor(
-								new Class[] { ConnectionImpl.class,
+								new Class[] { MySQLConnection.class,
 										String.class, String.class,
 										Boolean.TYPE });
 			} catch (SecurityException e) {
@@ -90,7 +87,7 @@ public class CallableStatement extends PreparedStatement implements
 		}
 	}
 	
-	protected class CallableStatementParam {
+	protected static class CallableStatementParam {
 		int desiredJdbcType;
 
 		int index;
@@ -445,6 +442,7 @@ public class CallableStatement extends PreparedStatement implements
 	private final static String PARAMETER_NAMESPACE_PREFIX = "@com_mysql_jdbc_outparam_"; //$NON-NLS-1$
 
 	private static String mangleParameterName(String origParameterName) {
+		//Fixed for 5.5+ in callers
 		if (origParameterName == null) {
 			return null;
 		}
@@ -482,7 +480,7 @@ public class CallableStatement extends PreparedStatement implements
 	protected CallableStatementParamInfo paramInfo;
 
 	private CallableStatementParam returnValueParam;
-
+	
 	/**
 	 * Creates a new CallableStatement
 	 * 
@@ -494,7 +492,7 @@ public class CallableStatement extends PreparedStatement implements
 	 * @throws SQLException
 	 *             if an error occurs
 	 */
-	public CallableStatement(ConnectionImpl conn,
+	public CallableStatement(MySQLConnection conn,
 			CallableStatementParamInfo paramInfo) throws SQLException {
 		super(conn, paramInfo.nativeSql, paramInfo.catalogInUse);
 
@@ -515,7 +513,7 @@ public class CallableStatement extends PreparedStatement implements
 	 * classes that are present in JDBC4 method signatures.
 	 */
 
-	protected static CallableStatement getInstance(ConnectionImpl conn, String sql,
+	protected static CallableStatement getInstance(MySQLConnection conn, String sql,
 			String catalog, boolean isFunctionCall) throws SQLException {
 		if (!Util.isJdbc4()) {
 			return new CallableStatement(conn, sql, catalog, isFunctionCall);
@@ -533,7 +531,7 @@ public class CallableStatement extends PreparedStatement implements
 	 * classes that are present in JDBC4 method signatures.
 	 */
 
-	protected static CallableStatement getInstance(ConnectionImpl conn,
+	protected static CallableStatement getInstance(MySQLConnection conn,
 			CallableStatementParamInfo paramInfo) throws SQLException {
 		if (!Util.isJdbc4()) {
 			return new CallableStatement(conn, paramInfo);
@@ -546,7 +544,7 @@ public class CallableStatement extends PreparedStatement implements
 	
 	private int[] placeholderToParameterIndexMap;
 	
-	private void generateParameterMap() throws SQLException {
+	private synchronized void generateParameterMap() throws SQLException {
 		if (this.paramInfo == null) {
 			return;
 		}
@@ -600,7 +598,7 @@ public class CallableStatement extends PreparedStatement implements
 			}
 		}
 	}
-
+	
 	/**
 	 * Creates a new CallableStatement
 	 * 
@@ -614,7 +612,7 @@ public class CallableStatement extends PreparedStatement implements
 	 * @throws SQLException
 	 *             if an error occurs
 	 */
-	public CallableStatement(ConnectionImpl conn, String sql, String catalog,
+	public CallableStatement(MySQLConnection conn, String sql, String catalog,
 			boolean isFunctionCall) throws SQLException {
 		super(conn, sql, catalog);
 
@@ -650,7 +648,7 @@ public class CallableStatement extends PreparedStatement implements
 		super.addBatch();
 	}
 
-	private CallableStatementParam checkIsOutputParam(int paramIndex)
+	private synchronized CallableStatementParam checkIsOutputParam(int paramIndex)
 			throws SQLException {
 
 		if (this.callingStoredFunction) {
@@ -707,7 +705,7 @@ public class CallableStatement extends PreparedStatement implements
 	 * 
 	 * @throws SQLException
 	 */
-	private void checkParameterIndexBounds(int paramIndex) throws SQLException {
+	private synchronized void checkParameterIndexBounds(int paramIndex) throws SQLException {
 		this.paramInfo.checkBounds(paramIndex);
 	}
 
@@ -744,7 +742,7 @@ public class CallableStatement extends PreparedStatement implements
 	 * 
 	 * @throws SQLException if we can't build the metadata.
 	 */
-	private void fakeParameterTypes(boolean isReallyProcedure) throws SQLException {
+	private synchronized void fakeParameterTypes(boolean isReallyProcedure) throws SQLException {
 		Field[] fields = new Field[13];
 
 		fields[0] = new Field("", "PROCEDURE_CAT", Types.CHAR, 0);
@@ -766,7 +764,7 @@ public class CallableStatement extends PreparedStatement implements
 		byte[] procNameAsBytes = null;
 
 		try {
-			procNameAsBytes = procName == null ? null : procName.getBytes("UTF-8");
+			procNameAsBytes = procName == null ? null : StringUtils.getBytes(procName, "UTF-8");
 		} catch (UnsupportedEncodingException ueEx) {
 			procNameAsBytes = StringUtils.s2b(procName, this.connection);
 		}
@@ -807,32 +805,62 @@ public class CallableStatement extends PreparedStatement implements
 		convertGetProcedureColumnsToInternalDescriptors(paramTypesRs);
 	}
 	
-	private void determineParameterTypes() throws SQLException {
-		if (this.connection.getNoAccessToProcedureBodies()) {
-			fakeParameterTypes(true);
-			
-			return;
-		}
+	private synchronized void determineParameterTypes() throws SQLException {
 		
 		java.sql.ResultSet paramTypesRs = null;
 
 		try {
+			//Bug#57022, we need to check for db.SPname notation first
+			//  and pass on only SPname
 			String procName = extractProcedureName();
-
+			String quotedId = "";
+			try {
+				quotedId = this.connection.supportsQuotedIdentifiers() ? 
+						this.connection.getMetaData().getIdentifierQuoteString()	: "";
+			} catch (SQLException sqlEx) {
+				// Forced by API, never thrown from getIdentifierQuoteString() in
+				// this implementation.
+				AssertionFailedException.shouldNotHappen(sqlEx);
+			}
+			
+			List parseList = StringUtils.splitDBdotName(procName, "", 
+					quotedId , this.connection.isNoBackslashEscapesSet());
+			String tmpCatalog = "";
+			//There *should* be 2 rows, if any.
+			if (parseList.size() == 2) {
+				tmpCatalog = (String) parseList.get(0);
+				procName = (String) parseList.get(1);			
+			} else {
+				//keep values as they are
+			}
+			
 			java.sql.DatabaseMetaData dbmd = this.connection.getMetaData();
 
 			boolean useCatalog = false;
 
-			if (procName.indexOf(".") == -1) {
+			if (tmpCatalog.length() <= 0) {
 				useCatalog = true;
 			}
-
+			
 			paramTypesRs = dbmd.getProcedureColumns(this.connection
 					.versionMeetsMinimum(5, 0, 2)
-					&& useCatalog ? this.currentCatalog : null, null, procName,
+					&& useCatalog ? this.currentCatalog : tmpCatalog/*null*/, null, procName,
 					"%"); //$NON-NLS-1$
-
-			convertGetProcedureColumnsToInternalDescriptors(paramTypesRs);
+			
+			boolean hasResults = false;
+			try {
+				if (paramTypesRs.next()) {
+					paramTypesRs.previous();
+					hasResults = true;
+				}
+			} catch (Exception e) {
+				// paramTypesRs is empty, proceed with fake params. swallow, was expected 
+			}
+			if (hasResults){
+				convertGetProcedureColumnsToInternalDescriptors(paramTypesRs);
+			} else {
+				fakeParameterTypes(true);
+			}
 		} finally {
 			SQLException sqlExRethrow = null;
 
@@ -852,7 +880,7 @@ public class CallableStatement extends PreparedStatement implements
 		}
 	}
 
-	private void convertGetProcedureColumnsToInternalDescriptors(java.sql.ResultSet paramTypesRs) throws SQLException {
+	private synchronized void convertGetProcedureColumnsToInternalDescriptors(java.sql.ResultSet paramTypesRs) throws SQLException {
 		if (!this.connection.isRunningOnJDK13()) {
 			this.paramInfo = new CallableStatementParamInfoJDBC3(
 					paramTypesRs);
@@ -866,14 +894,14 @@ public class CallableStatement extends PreparedStatement implements
 	 * 
 	 * @see java.sql.PreparedStatement#execute()
 	 */
-	public boolean execute() throws SQLException {
+	public synchronized boolean execute() throws SQLException {
 		boolean returnVal = false;
 
 		checkClosed();
 
 		checkStreamability();
 
-		synchronized (this.connection.getMutex()) {
+		synchronized (this.connection) {
 			setInOutParamsOnServer();
 			setOutParams();
 
@@ -901,14 +929,14 @@ public class CallableStatement extends PreparedStatement implements
 	 * 
 	 * @see java.sql.PreparedStatement#executeQuery()
 	 */
-	public java.sql.ResultSet executeQuery() throws SQLException {
+	public synchronized java.sql.ResultSet executeQuery() throws SQLException {
 		checkClosed();
 
 		checkStreamability();
 
 		java.sql.ResultSet execResults = null;
 
-		synchronized (this.connection.getMutex()) {
+		synchronized (this.connection) {
 			setInOutParamsOnServer();
 			setOutParams();
 
@@ -925,7 +953,7 @@ public class CallableStatement extends PreparedStatement implements
 	 * 
 	 * @see java.sql.PreparedStatement#executeUpdate()
 	 */
-	public int executeUpdate() throws SQLException {
+	public synchronized int executeUpdate() throws SQLException {
 		int returnVal = -1;
 
 		checkClosed();
@@ -938,7 +966,7 @@ public class CallableStatement extends PreparedStatement implements
 			return -1;
 		}
 
-		synchronized (this.connection.getMutex()) {
+		synchronized (this.connection) {
 			setInOutParamsOnServer();
 			setOutParams();
 
@@ -1001,13 +1029,18 @@ public class CallableStatement extends PreparedStatement implements
 	 * @throws SQLException
 	 *             if the parameter name is null or empty.
 	 */
-	protected String fixParameterName(String paramNameIn) throws SQLException {
-		if ((paramNameIn == null) || (paramNameIn.length() == 0)) {
+	protected synchronized String fixParameterName(String paramNameIn) throws SQLException {
+		//Fixed for 5.5+
+		if (((paramNameIn == null) || (paramNameIn.length() == 0)) && (!hasParametersView())) {
 			throw SQLError.createSQLException(
 					((Messages.getString("CallableStatement.0") + paramNameIn) == null) //$NON-NLS-1$
 							? Messages.getString("CallableStatement.15") : Messages.getString("CallableStatement.16"), SQLError.SQL_STATE_ILLEGAL_ARGUMENT, 
 									getExceptionInterceptor()); //$NON-NLS-1$ //$NON-NLS-2$
 		}
+
+		if ((paramNameIn == null) && (hasParametersView())) {
+			paramNameIn = "nullpn";
+		};
 
 		if (this.connection.getNoAccessToProcedureBodies()) {
 			throw SQLError.createSQLException("No access to parameters by name when connection has been configured not to access procedure bodies",
@@ -1428,13 +1461,14 @@ public class CallableStatement extends PreparedStatement implements
 		return retValue;
 	}
 
-	protected int getNamedParamIndex(String paramName, boolean forOut)
+	protected synchronized int getNamedParamIndex(String paramName, boolean forOut)
 	throws SQLException {
 		if (this.connection.getNoAccessToProcedureBodies()) {
 			throw SQLError.createSQLException("No access to parameters by name when connection has been configured not to access procedure bodies",
 					SQLError.SQL_STATE_ILLEGAL_ARGUMENT, getExceptionInterceptor());
 		}
 		
+		//Fixed for 5.5+ in callers
 		if ((paramName == null) || (paramName.length() == 0)) {
 			throw SQLError.createSQLException(Messages.getString("CallableStatement.2"), //$NON-NLS-1$
 					SQLError.SQL_STATE_ILLEGAL_ARGUMENT, getExceptionInterceptor());
@@ -1545,7 +1579,7 @@ public class CallableStatement extends PreparedStatement implements
 	 *             if no output parameters were defined, or if no output
 	 *             parameters were returned.
 	 */
-	protected ResultSetInternalMethods getOutputParameters(int paramIndex) throws SQLException {
+	protected synchronized ResultSetInternalMethods getOutputParameters(int paramIndex) throws SQLException {
 		this.outputParamWasNull = false;
 
 		if (paramIndex == 1 && this.callingStoredFunction
@@ -1570,10 +1604,10 @@ public class CallableStatement extends PreparedStatement implements
 	public synchronized ParameterMetaData getParameterMetaData()
 			throws SQLException {
 		if (this.placeholderToParameterIndexMap == null) {
-		return (CallableStatementParamInfoJDBC3) this.paramInfo;
+			return (CallableStatementParamInfoJDBC3) this.paramInfo;
 		} else {
 			return new CallableStatementParamInfoJDBC3(this.paramInfo);
-	}
+		}
 	}
 
 	/**
@@ -1812,7 +1846,7 @@ public class CallableStatement extends PreparedStatement implements
 		return retValue;
 	}
 
-	protected int mapOutputParameterIndexToRsIndex(int paramIndex)
+	protected synchronized int mapOutputParameterIndexToRsIndex(int paramIndex)
 			throws SQLException {
 
 		if (this.returnValueParam != null && paramIndex == 1) {
@@ -1899,7 +1933,7 @@ public class CallableStatement extends PreparedStatement implements
 	 * @throws SQLException
 	 *             if an error occurs.
 	 */
-	private void retrieveOutParams() throws SQLException {
+	private synchronized void retrieveOutParams() throws SQLException {
 		int numParameters = this.paramInfo.numberOfParameters();
 
 		this.parameterIndexToRsIndex = new int[numParameters];
@@ -1926,6 +1960,10 @@ public class CallableStatement extends PreparedStatement implements
 
 					this.parameterIndexToRsIndex[retrParamInfo.index] = localParamIndex++;
 
+					if ((retrParamInfo.paramName == null) && (hasParametersView())) {
+						retrParamInfo.paramName = "nullnp" + retrParamInfo.index;
+					}
+					
 					String outParameterName = mangleParameterName(retrParamInfo.paramName);
 
 					if (!firstParam) {
@@ -2063,7 +2101,7 @@ public class CallableStatement extends PreparedStatement implements
 	/**
 	 * 
 	 */
-	private void setInOutParamsOnServer() throws SQLException {
+	private synchronized void setInOutParamsOnServer() throws SQLException {
 		if (this.paramInfo.numParameters > 0) {
 			int parameterIndex = 0;
 
@@ -2073,7 +2111,12 @@ public class CallableStatement extends PreparedStatement implements
 				CallableStatementParam inParamInfo = (CallableStatementParam) paramIter
 						.next();
 
+				//Fix for 5.5+
 				if (inParamInfo.isOut && inParamInfo.isIn) {
+					if ((inParamInfo.paramName == null) && (hasParametersView())) {
+						inParamInfo.paramName = "nullnp" + inParamInfo.index;
+					};
+					
 					String inOutParameterName = mangleParameterName(inParamInfo.paramName);
 					StringBuffer queryBuf = new StringBuffer(
 							4 + inOutParameterName.length() + 1 + 1);
@@ -2192,7 +2235,7 @@ public class CallableStatement extends PreparedStatement implements
 			int scale) throws SQLException {
 	}
 
-	private void setOutParams() throws SQLException {
+	private synchronized void setOutParams() throws SQLException {
 		if (this.paramInfo.numParameters > 0) {
 			for (Iterator paramIter = this.paramInfo.iterator(); paramIter
 					.hasNext();) {
@@ -2200,14 +2243,32 @@ public class CallableStatement extends PreparedStatement implements
 						.next();
 
 				if (!this.callingStoredFunction && outParamInfo.isOut) {
+
+					if ((outParamInfo.paramName == null) && (hasParametersView())) {
+						outParamInfo.paramName = "nullnp" + outParamInfo.index;
+					};
+
 					String outParameterName = mangleParameterName(outParamInfo.paramName);
 
-					int outParamIndex;
+					int outParamIndex = 0;
 					
 					if (this.placeholderToParameterIndexMap == null) { 
 							outParamIndex = outParamInfo.index + 1;
 					} else {
-							outParamIndex = this.placeholderToParameterIndexMap[outParamInfo.index - 1 /* JDBC is 1-based */];
+							// Find it, todo: remove this linear search
+							boolean found = false;
+							
+							for (int i = 0; i < this.placeholderToParameterIndexMap.length; i++) {
+								if (this.placeholderToParameterIndexMap[i] == outParamInfo.index) {
+									outParamIndex = i + 1; /* JDBC is 1-based */
+									found = true;
+									break;
+								}
+							}
+							
+							if (!found) {
+								throw SQLError.createSQLException("boo!", "S1000", this.connection.getExceptionInterceptor());
+							}
 					}
 					
 					this.setBytesNoEscapeNoQuotes(outParamIndex,
@@ -2377,7 +2438,7 @@ public class CallableStatement extends PreparedStatement implements
 	 * @return true if procedure does not alter data
 	 * @throws SQLException
 	 */
-	private boolean checkReadOnlyProcedure() throws SQLException {
+	private synchronized boolean checkReadOnlyProcedure() throws SQLException {
 		if (this.connection.getNoAccessToProcedureBodies()) {
 			return false;
 		}
@@ -2388,7 +2449,7 @@ public class CallableStatement extends PreparedStatement implements
 			}
 
 			ResultSet rs = null;
-			PreparedStatement ps = null;
+			java.sql.PreparedStatement ps = null;
 			
 			try {
 				String procName = extractProcedureName();
@@ -2403,15 +2464,16 @@ public class CallableStatement extends PreparedStatement implements
 					}
 					
 					procName = procName.substring(procName.indexOf(".") + 1);
-					procName = new String(StringUtils.stripEnclosure(procName
-							.getBytes(), "`", "`"));
+					procName = StringUtils.toString(StringUtils.stripEnclosure(
+							StringUtils.getBytes(procName), "`", "`"));
 				}
-				ps = ((DatabaseMetaData) this.connection
-						.getMetaData())
-						.prepareMetaDataSafeStatement("SELECT SQL_DATA_ACCESS FROM "
+				ps = this.connection
+						.prepareStatement("SELECT SQL_DATA_ACCESS FROM "
 								+ " information_schema.routines "
 								+ " WHERE routine_schema = ? "
 								+ " AND routine_name = ?");
+				ps.setMaxRows(0);
+				ps.setFetchSize(0);
 
 				ps.setString(1, catalog);
 				ps.setString(2, procName);
@@ -2448,6 +2510,20 @@ public class CallableStatement extends PreparedStatement implements
 	protected boolean checkReadOnlySafeStatement() throws SQLException {
 		return (super.checkReadOnlySafeStatement() || this.checkReadOnlyProcedure());
 	}
+	
+	private synchronized boolean hasParametersView() throws SQLException {
+		try {
+			if (this.connection.versionMeetsMinimum(5, 5, 0)) {
+				java.sql.DatabaseMetaData dbmd1 = new DatabaseMetaDataUsingInfoSchema(this.connection, this.connection.getCatalog());
+				return ((DatabaseMetaDataUsingInfoSchema)dbmd1).gethasParametersView();
+			} else {
+				return false;
+			}
+		} catch (SQLException e) {
+			return false;
+		}
+	}
 
 
+   
 }

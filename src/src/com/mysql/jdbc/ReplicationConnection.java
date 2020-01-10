@@ -1,26 +1,23 @@
 /*
- Copyright  2004-2007 MySQL AB, 2008-2009 Sun Microsystems
- All rights reserved. Use is subject to license terms.
+ Copyright (c) 2004, 2011, Oracle and/or its affiliates. All rights reserved.
 
-  The MySQL Connector/J is licensed under the terms of the GPL,
-  like most MySQL Connectors. There are special exceptions to the
-  terms and conditions of the GPL as it is applied to this software,
-  see the FLOSS License Exception available on mysql.com.
+  The MySQL Connector/J is licensed under the terms of the GPLv2
+  <http://www.gnu.org/licenses/old-licenses/gpl-2.0.html>, like most MySQL Connectors.
+  There are special exceptions to the terms and conditions of the GPLv2 as it is applied to
+  this software, see the FLOSS License Exception
+  <http://www.mysql.com/about/legal/licensing/foss-exception.html>.
 
-  This program is free software; you can redistribute it and/or
-  modify it under the terms of the GNU General Public License as
-  published by the Free Software Foundation; version 2 of the
-  License.
+  This program is free software; you can redistribute it and/or modify it under the terms
+  of the GNU General Public License as published by the Free Software Foundation; version 2
+  of the License.
 
-  This program is distributed in the hope that it will be useful,  
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
+  This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+  without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  See the GNU General Public License for more details.
 
-  You should have received a copy of the GNU General Public License
-  along with this program; if not, write to the Free Software
-  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
-  02110-1301 USA
+  You should have received a copy of the GNU General Public License along with this
+  program; if not, write to the Free Software Foundation, Inc., 51 Franklin St, Fifth
+  Floor, Boston, MA 02110-1301  USA
  */
 package com.mysql.jdbc;
 
@@ -324,7 +321,7 @@ public class ReplicationConnection implements Connection, PingTarget {
 	 */
 	public PreparedStatement prepareStatement(String sql) throws SQLException {
 		PreparedStatement pstmt = this.currentConnection.prepareStatement(sql);
-
+		
 		((com.mysql.jdbc.Statement) pstmt).setPingTarget(this);
 		
 		return pstmt;
@@ -508,15 +505,6 @@ public class ReplicationConnection implements Connection, PingTarget {
 	}
 
 	// For testing
-
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see java.sql.Connection#setTypeMap(java.util.Map)
-	 */
-	public synchronized void setTypeMap(Map arg0) throws SQLException {
-		this.currentConnection.setTypeMap(arg0);
-	}
 
 	private synchronized void switchToMasterConnection() throws SQLException {
 		swapConnections(this.masterConnection, this.slavesConnection);
@@ -2394,6 +2382,22 @@ public class ReplicationConnection implements Connection, PingTarget {
 	public void setLoadBalanceBlacklistTimeout(int loadBalanceBlacklistTimeout) {
 		this.currentConnection.setLoadBalanceBlacklistTimeout(loadBalanceBlacklistTimeout);
 	}
+	
+	public int getLoadBalancePingTimeout() {
+		return this.currentConnection.getLoadBalancePingTimeout();
+	}
+
+	public void setLoadBalancePingTimeout(int loadBalancePingTimeout) {
+		this.currentConnection.setLoadBalancePingTimeout(loadBalancePingTimeout);
+	}
+	
+	public boolean getLoadBalanceValidateConnectionOnSwapServer() {
+		return this.currentConnection.getLoadBalanceValidateConnectionOnSwapServer();
+	}
+
+	public void setLoadBalanceValidateConnectionOnSwapServer(boolean loadBalanceValidateConnectionOnSwapServer) {
+		this.currentConnection.setLoadBalanceValidateConnectionOnSwapServer(loadBalanceValidateConnectionOnSwapServer);
+	}
 
 	public int getRetriesAllDown() {
 		return this.currentConnection.getRetriesAllDown();
@@ -2435,5 +2439,123 @@ public class ReplicationConnection implements Connection, PingTarget {
 		props.putAll(this.slavesConnection.getProperties());
 		
 		return props;
+	}
+
+   public String getHost() {
+      return currentConnection.getHost();
+   }
+
+   public void setProxy(MySQLConnection proxy) {
+      currentConnection.setProxy(proxy);
+   }
+
+ 	public synchronized boolean getRetainStatementAfterResultSetClose() {
+		return currentConnection.getRetainStatementAfterResultSetClose();
+	}
+
+ 	public int getMaxAllowedPacket() {
+		return currentConnection.getMaxAllowedPacket();
+	}
+ 	
+	public String getLoadBalanceConnectionGroup() {
+		return currentConnection.getLoadBalanceConnectionGroup();
+	}
+
+	public boolean getLoadBalanceEnableJMX() {
+		return currentConnection.getLoadBalanceEnableJMX();
+	}
+
+	public String getLoadBalanceExceptionChecker() {
+		return currentConnection
+				.getLoadBalanceExceptionChecker();
+	}
+
+	public String getLoadBalanceSQLExceptionSubclassFailover() {
+		return currentConnection
+				.getLoadBalanceSQLExceptionSubclassFailover();
+	}
+
+	public String getLoadBalanceSQLStateFailover() {
+		return currentConnection
+				.getLoadBalanceSQLStateFailover();
+	}
+
+	public void setLoadBalanceConnectionGroup(String loadBalanceConnectionGroup) {
+		currentConnection
+				.setLoadBalanceConnectionGroup(loadBalanceConnectionGroup);
+		
+	}
+
+	public void setLoadBalanceEnableJMX(boolean loadBalanceEnableJMX) {
+		currentConnection
+				.setLoadBalanceEnableJMX(loadBalanceEnableJMX);
+		
+	}
+
+	public void setLoadBalanceExceptionChecker(
+			String loadBalanceExceptionChecker) {
+		currentConnection
+				.setLoadBalanceExceptionChecker(loadBalanceExceptionChecker);
+		
+	}
+
+	public void setLoadBalanceSQLExceptionSubclassFailover(
+			String loadBalanceSQLExceptionSubclassFailover) {
+		currentConnection
+				.setLoadBalanceSQLExceptionSubclassFailover(loadBalanceSQLExceptionSubclassFailover);
+		
+	}
+
+	public void setLoadBalanceSQLStateFailover(
+			String loadBalanceSQLStateFailover) {
+		currentConnection
+				.setLoadBalanceSQLStateFailover(loadBalanceSQLStateFailover);
+		
+	}
+
+	public String getLoadBalanceAutoCommitStatementRegex() {
+		return currentConnection.getLoadBalanceAutoCommitStatementRegex();
+	}
+
+	public int getLoadBalanceAutoCommitStatementThreshold() {
+		return currentConnection.getLoadBalanceAutoCommitStatementThreshold();
+	}
+
+	public void setLoadBalanceAutoCommitStatementRegex(
+			String loadBalanceAutoCommitStatementRegex) {
+		currentConnection.setLoadBalanceAutoCommitStatementRegex(loadBalanceAutoCommitStatementRegex);
+		
+	}
+
+	public void setLoadBalanceAutoCommitStatementThreshold(
+			int loadBalanceAutoCommitStatementThreshold) {
+		currentConnection.setLoadBalanceAutoCommitStatementThreshold(loadBalanceAutoCommitStatementThreshold);
+		
+	}
+
+	public void setTypeMap(Map<String, Class<?>> map) throws SQLException {
+		// TODO Auto-generated method stub
+		
+	}
+
+	public boolean getIncludeThreadDumpInDeadlockExceptions() {
+		return currentConnection.getIncludeThreadDumpInDeadlockExceptions();
+	}
+
+	public void setIncludeThreadDumpInDeadlockExceptions(boolean flag) {
+		currentConnection.setIncludeThreadDumpInDeadlockExceptions(flag);
+		
+	}
+
+	public boolean getIncludeThreadNamesAsStatementComment() {
+		return currentConnection.getIncludeThreadNamesAsStatementComment();
+	}
+
+	public void setIncludeThreadNamesAsStatementComment(boolean flag) {
+		currentConnection.setIncludeThreadNamesAsStatementComment(flag);
+	}
+
+	public synchronized boolean isServerLocal() throws SQLException {
+		return this.currentConnection.isServerLocal();
 	}
 }

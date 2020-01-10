@@ -1,26 +1,23 @@
 /*
- Copyright  2005-2007 MySQL AB, 2008 Sun Microsystems
- All rights reserved. Use is subject to license terms.
+  Copyright (c) 2005, 2010, Oracle and/or its affiliates. All rights reserved.
 
-  The MySQL Connector/J is licensed under the terms of the GPL,
-  like most MySQL Connectors. There are special exceptions to the
-  terms and conditions of the GPL as it is applied to this software,
-  see the FLOSS License Exception available on mysql.com.
+  The MySQL Connector/J is licensed under the terms of the GPLv2
+  <http://www.gnu.org/licenses/old-licenses/gpl-2.0.html>, like most MySQL Connectors.
+  There are special exceptions to the terms and conditions of the GPLv2 as it is applied to
+  this software, see the FLOSS License Exception
+  <http://www.mysql.com/about/legal/licensing/foss-exception.html>.
 
-  This program is free software; you can redistribute it and/or
-  modify it under the terms of the GNU General Public License as
-  published by the Free Software Foundation; version 2 of the
-  License.
+  This program is free software; you can redistribute it and/or modify it under the terms
+  of the GNU General Public License as published by the Free Software Foundation; version 2
+  of the License.
 
-  This program is distributed in the hope that it will be useful,  
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
+  This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+  without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  See the GNU General Public License for more details.
 
-  You should have received a copy of the GNU General Public License
-  along with this program; if not, write to the Free Software
-  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
-  02110-1301 USA
+  You should have received a copy of the GNU General Public License along with this
+  program; if not, write to the Free Software Foundation, Inc., 51 Franklin St, Fifth
+  Floor, Boston, MA 02110-1301  USA
 
  */
 package com.mysql.jdbc;
@@ -28,6 +25,8 @@ package com.mysql.jdbc;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
+import java.util.List;
+import com.mysql.jdbc.StringUtils;
 
 /**
  * DatabaseMetaData implementation that uses INFORMATION_SCHEMA available in
@@ -39,9 +38,9 @@ import java.sql.Types;
 public class DatabaseMetaDataUsingInfoSchema extends DatabaseMetaData {
 
 	private boolean hasReferentialConstraintsView;
-	private boolean hasParametersView;
+	private final boolean hasParametersView;
 	
-	protected DatabaseMetaDataUsingInfoSchema(ConnectionImpl connToSet,
+   protected DatabaseMetaDataUsingInfoSchema(MySQLConnection connToSet,
 			String databaseToSet) throws SQLException {
 		super(connToSet, databaseToSet);
 		
@@ -61,7 +60,7 @@ public class DatabaseMetaDataUsingInfoSchema extends DatabaseMetaData {
 		}
 	}
 
-	private ResultSet executeMetadataQuery(PreparedStatement pStmt)
+	private ResultSet executeMetadataQuery(java.sql.PreparedStatement pStmt)
 			throws SQLException {
 		ResultSet rs = pStmt.executeQuery();
 		((com.mysql.jdbc.ResultSetInternalMethods) rs).setOwningStatement(null);
@@ -130,7 +129,7 @@ public class DatabaseMetaDataUsingInfoSchema extends DatabaseMetaData {
 			 + "TABLE_NAME =? AND COLUMN_NAME LIKE ? ORDER BY " 
 			 + "COLUMN_NAME, PRIVILEGE_TYPE";
 		
-		PreparedStatement pStmt = null;
+		java.sql.PreparedStatement pStmt = null;
 		
 		try {
 			pStmt = prepareMetaDataSafeStatement(sql);
@@ -233,9 +232,9 @@ public class DatabaseMetaDataUsingInfoSchema extends DatabaseMetaData {
 		sqlBuf.append(" AS DATA_TYPE, ");
 
 		if (conn.getCapitalizeTypeNames()) {
-			sqlBuf.append("UPPER(CASE WHEN LOCATE('unsigned', COLUMN_TYPE) != 0 AND LOCATE('unsigned', DATA_TYPE) = 0 THEN CONCAT(DATA_TYPE, ' unsigned') ELSE DATA_TYPE END) AS TYPE_NAME,");
+			sqlBuf.append("UPPER(CASE WHEN LOCATE('unsigned', COLUMN_TYPE) != 0 AND LOCATE('unsigned', DATA_TYPE) = 0 AND LOCATE('set', DATA_TYPE) <> 1 AND LOCATE('enum', DATA_TYPE) <> 1 THEN CONCAT(DATA_TYPE, ' unsigned') ELSE DATA_TYPE END) AS TYPE_NAME,");
 		} else {
-			sqlBuf.append("CASE WHEN LOCATE('unsigned', COLUMN_TYPE) != 0 AND LOCATE('unsigned', DATA_TYPE) = 0 THEN CONCAT(DATA_TYPE, ' unsigned') ELSE DATA_TYPE END AS TYPE_NAME,");
+			sqlBuf.append("CASE WHEN LOCATE('unsigned', COLUMN_TYPE) != 0 AND LOCATE('unsigned', DATA_TYPE) = 0 AND LOCATE('set', DATA_TYPE) <> 1 AND LOCATE('enum', DATA_TYPE) <> 1 THEN CONCAT(DATA_TYPE, ' unsigned') ELSE DATA_TYPE END AS TYPE_NAME,");
 		}
 
 		sqlBuf
@@ -257,12 +256,43 @@ public class DatabaseMetaDataUsingInfoSchema extends DatabaseMetaData {
 						+ "NULL AS SCOPE_TABLE,"
 						+ "NULL AS SOURCE_DATA_TYPE,"
 						+ "IF (EXTRA LIKE '%auto_increment%','YES','NO') AS IS_AUTOINCREMENT "
-						+ "FROM INFORMATION_SCHEMA.COLUMNS WHERE "
-						+ "TABLE_SCHEMA LIKE ? AND "
-						+ "TABLE_NAME LIKE ? AND COLUMN_NAME LIKE ? "
-						+ "ORDER BY TABLE_SCHEMA, TABLE_NAME, ORDINAL_POSITION");
+						+ "FROM INFORMATION_SCHEMA.COLUMNS WHERE ");
 
-		PreparedStatement pStmt = null;
+		final boolean operatingOnInformationSchema = "information_schema".equalsIgnoreCase(catalog);
+		
+		if (catalog != null) {
+			if ((operatingOnInformationSchema) || ((StringUtils.indexOfIgnoreCase(0, catalog, "%") == -1) 
+					&& (StringUtils.indexOfIgnoreCase(0, catalog, "_") == -1))) {
+				sqlBuf.append("TABLE_SCHEMA = ? AND ");
+			} else {
+				sqlBuf.append("TABLE_SCHEMA LIKE ? AND ");
+			}
+			
+		} else {
+			sqlBuf.append("TABLE_SCHEMA LIKE ? AND ");
+		}
+
+		if (tableName != null) {
+			if ((StringUtils.indexOfIgnoreCase(0, tableName, "%") == -1) 
+					&& (StringUtils.indexOfIgnoreCase(0, tableName, "_") == -1)) {
+				sqlBuf.append("TABLE_NAME = ? AND ");
+			} else {
+				sqlBuf.append("TABLE_NAME LIKE ? AND ");
+			}
+			
+		} else {
+			sqlBuf.append("TABLE_NAME LIKE ? AND ");
+		}
+		
+		if ((StringUtils.indexOfIgnoreCase(0, columnNamePattern, "%") == -1) 
+				&& (StringUtils.indexOfIgnoreCase(0, columnNamePattern, "_") == -1)) {
+			sqlBuf.append("COLUMN_NAME = ? ");
+		} else {
+			sqlBuf.append("COLUMN_NAME LIKE ? ");
+		}
+		sqlBuf.append("ORDER BY TABLE_SCHEMA, TABLE_NAME, ORDINAL_POSITION");
+		
+		java.sql.PreparedStatement pStmt = null;
 
 		try {
 			pStmt = prepareMetaDataSafeStatement(sqlBuf.toString());
@@ -408,7 +438,7 @@ public class DatabaseMetaDataUsingInfoSchema extends DatabaseMetaData {
 				+ "AND A.TABLE_SCHEMA LIKE ? AND A.TABLE_NAME=? " + "ORDER BY "
 				+ "A.TABLE_SCHEMA, A.TABLE_NAME, A.ORDINAL_POSITION";
 
-		PreparedStatement pStmt = null;
+		java.sql.PreparedStatement pStmt = null;
 
 		try {
 			pStmt = prepareMetaDataSafeStatement(sql);
@@ -548,7 +578,7 @@ public class DatabaseMetaDataUsingInfoSchema extends DatabaseMetaData {
 				+ "AND A.REFERENCED_TABLE_SCHEMA LIKE ? AND A.REFERENCED_TABLE_NAME=? "
 				+ "ORDER BY A.TABLE_SCHEMA, A.TABLE_NAME, A.ORDINAL_POSITION";
 
-		PreparedStatement pStmt = null;
+		java.sql.PreparedStatement pStmt = null;
 
 		try {
 			pStmt = prepareMetaDataSafeStatement(sql);
@@ -711,7 +741,7 @@ public class DatabaseMetaDataUsingInfoSchema extends DatabaseMetaData {
 				+ "A.REFERENCED_TABLE_SCHEMA, A.REFERENCED_TABLE_NAME, "
 				+ "A.ORDINAL_POSITION";
 
-		PreparedStatement pStmt = null;
+		java.sql.PreparedStatement pStmt = null;
 
 		try {
 			pStmt = prepareMetaDataSafeStatement(sql);
@@ -813,7 +843,7 @@ public class DatabaseMetaDataUsingInfoSchema extends DatabaseMetaData {
 
 		sqlBuf.append("ORDER BY NON_UNIQUE, INDEX_NAME, SEQ_IN_INDEX");
 
-		PreparedStatement pStmt = null;
+		java.sql.PreparedStatement pStmt = null;
 
 		try {
 			if (catalog == null) {
@@ -888,7 +918,7 @@ public class DatabaseMetaDataUsingInfoSchema extends DatabaseMetaData {
 				+ "WHERE TABLE_SCHEMA LIKE ? AND TABLE_NAME LIKE ? AND "
 				+ "INDEX_NAME='PRIMARY' ORDER BY TABLE_SCHEMA, TABLE_NAME, INDEX_NAME, SEQ_IN_INDEX";
 
-		PreparedStatement pStmt = null;
+		java.sql.PreparedStatement pStmt = null;
 
 		try {
 			pStmt = prepareMetaDataSafeStatement(sql);
@@ -995,7 +1025,7 @@ public class DatabaseMetaDataUsingInfoSchema extends DatabaseMetaData {
 				+ "ROUTINE_SCHEMA LIKE ? AND ROUTINE_NAME LIKE ? "
 				+ "ORDER BY ROUTINE_SCHEMA, ROUTINE_NAME";
 
-		PreparedStatement pStmt = null;
+		java.sql.PreparedStatement pStmt = null;
 
 		try {
 			pStmt = prepareMetaDataSafeStatement(sql);
@@ -1151,7 +1181,10 @@ public class DatabaseMetaDataUsingInfoSchema extends DatabaseMetaData {
 			if (this.conn.getNullCatalogMeansCurrent()) {
 				db = this.database;
 			}
-		}
+		} else {
+			db = catalog;
+        }
+
     	
 		// FIXME: Use DBMD constants when we leave Java5
 		// FUNCTION_CAT
@@ -1209,7 +1242,7 @@ public class DatabaseMetaDataUsingInfoSchema extends DatabaseMetaData {
 				+ "SPECIFIC_SCHEMA LIKE ? AND SPECIFIC_NAME LIKE ? AND (PARAMETER_NAME LIKE ? OR PARAMETER_NAME IS NULL) "
 				+ "AND ROUTINE_TYPE='FUNCTION' ORDER BY SPECIFIC_SCHEMA, SPECIFIC_NAME, ORDINAL_POSITION");
 
-		PreparedStatement pStmt = null;
+		java.sql.PreparedStatement pStmt = null;
 
 		try {
 			pStmt = prepareMetaDataSafeStatement(sqlBuf.toString());
@@ -1326,8 +1359,10 @@ public class DatabaseMetaDataUsingInfoSchema extends DatabaseMetaData {
 			if (this.conn.getNullCatalogMeansCurrent()) {
 				db = this.database;
 			}
-		}
-		
+		}  else {
+			db = catalog;
+		}		
+
 		// Here's what we get from MySQL ...
 		// SPECIFIC_CATALOG                             NULL 
 		// SPECIFIC_SCHEMA                              db17 
@@ -1384,7 +1419,7 @@ public class DatabaseMetaDataUsingInfoSchema extends DatabaseMetaData {
 				+ "SPECIFIC_SCHEMA LIKE ? AND SPECIFIC_NAME LIKE ? AND (PARAMETER_NAME LIKE ? OR PARAMETER_NAME IS NULL) "
 				+ "ORDER BY SPECIFIC_SCHEMA, SPECIFIC_NAME, ORDINAL_POSITION");
 
-		PreparedStatement pStmt = null;
+		java.sql.PreparedStatement pStmt = null;
 
 		try {
 			pStmt = prepareMetaDataSafeStatement(sqlBuf.toString());
@@ -1463,15 +1498,60 @@ public class DatabaseMetaDataUsingInfoSchema extends DatabaseMetaData {
 			}
 		}
 
-		PreparedStatement pStmt = null;
+		final String tableNamePat;
+		String tmpCat = "";
+		
+		if ((catalog == null) || (catalog.length() == 0)) {
+			if (this.conn.getNullCatalogMeansCurrent()) {
+				tmpCat = this.database;
+			}
+		} else {
+			tmpCat = catalog;
+		}
+		
+		List parseList = StringUtils.splitDBdotName(tableNamePattern, tmpCat, 
+				quotedId , conn.isNoBackslashEscapesSet());
+		//There *should* be 2 rows, if any.
+		if (parseList.size() == 2) {
+			tableNamePat = (String) parseList.get(1);
+		} else {
+			tableNamePat = tableNamePattern;
+		}
+
+		java.sql.PreparedStatement pStmt = null;
 
 		String sql = "SELECT TABLE_SCHEMA AS TABLE_CAT, "
 				+ "NULL AS TABLE_SCHEM, TABLE_NAME, "
 				+ "CASE WHEN TABLE_TYPE='BASE TABLE' THEN 'TABLE' WHEN TABLE_TYPE='TEMPORARY' THEN 'LOCAL_TEMPORARY' ELSE TABLE_TYPE END AS TABLE_TYPE, "
 				+ "TABLE_COMMENT AS REMARKS "
-				+ "FROM INFORMATION_SCHEMA.TABLES WHERE "
-				+ "TABLE_SCHEMA LIKE ? AND TABLE_NAME LIKE ? AND TABLE_TYPE IN (?,?,?) "
-				+ "ORDER BY TABLE_TYPE, TABLE_SCHEMA, TABLE_NAME";
+				+ "FROM INFORMATION_SCHEMA.TABLES WHERE ";
+		
+		final boolean operatingOnInformationSchema = "information_schema".equalsIgnoreCase(catalog);
+		if (catalog != null) {
+			if ((operatingOnInformationSchema) || ((StringUtils.indexOfIgnoreCase(0, catalog, "%") == -1) 
+					&& (StringUtils.indexOfIgnoreCase(0, catalog, "_") == -1))) {
+				sql = sql + "TABLE_SCHEMA = ? AND ";
+			} else {
+				sql = sql + "TABLE_SCHEMA LIKE ? AND ";
+			}
+			
+		} else {
+			sql = sql + "TABLE_SCHEMA LIKE ? AND ";
+		}
+
+		if (tableNamePat != null) {
+			if ((StringUtils.indexOfIgnoreCase(0, tableNamePat, "%") == -1) 
+					&& (StringUtils.indexOfIgnoreCase(0, tableNamePat, "_") == -1)) {
+				sql = sql + "TABLE_NAME = ? AND ";
+			} else {
+				sql = sql + "TABLE_NAME LIKE ? AND ";
+			}
+			
+		} else {
+			sql = sql + "TABLE_NAME LIKE ? AND ";
+		}
+		sql = sql + "TABLE_TYPE IN (?,?,?) ";
+		sql = sql + "ORDER BY TABLE_TYPE, TABLE_SCHEMA, TABLE_NAME";
 		try {
 			pStmt = prepareMetaDataSafeStatement(sql);
 			
@@ -1481,7 +1561,7 @@ public class DatabaseMetaDataUsingInfoSchema extends DatabaseMetaData {
 				pStmt.setString(1, "%");
 			}
 			
-			pStmt.setString(2, tableNamePattern);
+			pStmt.setString(2, tableNamePat);
 
 			// This overloading of IN (...) allows us to cache this
 			// prepared statement
@@ -1525,6 +1605,10 @@ public class DatabaseMetaDataUsingInfoSchema extends DatabaseMetaData {
 				pStmt.close();
 			}
 		}
+	}
+	
+	public boolean gethasParametersView() {
+		return this.hasParametersView;
 	}
 
 

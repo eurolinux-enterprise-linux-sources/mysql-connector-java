@@ -1,26 +1,24 @@
 /*
- Copyright  2007 MySQL AB, 2008 Sun Microsystems
- All rights reserved. Use is subject to license terms.
+ Copyright (c) 2007, 2011, Oracle and/or its affiliates. All rights reserved.
+ 
 
-  The MySQL Connector/J is licensed under the terms of the GPL,
-  like most MySQL Connectors. There are special exceptions to the
-  terms and conditions of the GPL as it is applied to this software,
-  see the FLOSS License Exception available on mysql.com.
+  The MySQL Connector/J is licensed under the terms of the GPLv2
+  <http://www.gnu.org/licenses/old-licenses/gpl-2.0.html>, like most MySQL Connectors.
+  There are special exceptions to the terms and conditions of the GPLv2 as it is applied to
+  this software, see the FLOSS License Exception
+  <http://www.mysql.com/about/legal/licensing/foss-exception.html>.
 
-  This program is free software; you can redistribute it and/or
-  modify it under the terms of the GNU General Public License as
-  published by the Free Software Foundation; version 2 of the
-  License.
+  This program is free software; you can redistribute it and/or modify it under the terms
+  of the GNU General Public License as published by the Free Software Foundation; version 2
+  of the License.
 
-  This program is distributed in the hope that it will be useful,  
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
+  This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+  without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  See the GNU General Public License for more details.
 
-  You should have received a copy of the GNU General Public License
-  along with this program; if not, write to the Free Software
-  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
-  02110-1301 USA
+  You should have received a copy of the GNU General Public License along with this
+  program; if not, write to the Free Software Foundation, Inc., 51 Franklin St, Fifth
+  Floor, Boston, MA 02110-1301  USA
  
  */
 package com.mysql.jdbc;
@@ -94,7 +92,7 @@ public abstract class ResultSetRow {
 	public abstract byte[] getColumnValue(int index) throws SQLException;
 
 	protected final java.sql.Date getDateFast(int columnIndex,
-			byte[] dateAsBytes, int offset, int length, ConnectionImpl conn,
+			byte[] dateAsBytes, int offset, int length, MySQLConnection conn,
 			ResultSetImpl rs, Calendar targetCalendar) throws SQLException {
 
 		int year = 0;
@@ -141,7 +139,7 @@ public abstract class ResultSetRow {
 				} else if (ConnectionPropertiesImpl.ZERO_DATETIME_BEHAVIOR_EXCEPTION
 						.equals(conn.getZeroDateTimeBehavior())) {
 					throw SQLError.createSQLException("Value '"
-							+ new String(dateAsBytes)
+							+ StringUtils.toString(dateAsBytes)
 							+ "' can not be represented as java.sql.Date",
 							SQLError.SQL_STATE_ILLEGAL_ARGUMENT, this.exceptionInterceptor);
 				}
@@ -228,10 +226,9 @@ public abstract class ResultSetRow {
 											.getString(
 													"ResultSet.Bad_format_for_Date",
 													new Object[] {
-															new String(
+															StringUtils.toString(
 																	dateAsBytes),
-															Constants
-																	.integerValueOf(columnIndex + 1) }),
+															Integer.valueOf(columnIndex + 1) }),
 									SQLError.SQL_STATE_ILLEGAL_ARGUMENT, this.exceptionInterceptor); //$NON-NLS-1$
 				} /* endswitch */
 			} else if (this.metadata[columnIndex].getMysqlType() == MysqlDefs.FIELD_TYPE_YEAR) {
@@ -267,10 +264,9 @@ public abstract class ResultSetRow {
 											.getString(
 													"ResultSet.Bad_format_for_Date",
 													new Object[] {
-															new String(
+															StringUtils.toString(
 																	dateAsBytes),
-															Constants
-																	.integerValueOf(columnIndex + 1) }),
+															Integer.valueOf(columnIndex + 1) }),
 									SQLError.SQL_STATE_ILLEGAL_ARGUMENT, this.exceptionInterceptor); //$NON-NLS-1$
 				}
 
@@ -284,7 +280,7 @@ public abstract class ResultSetRow {
 				} else {
 					// JDK-1.3 timestamp format, not real easy to parse
 					// positionally :p
-					StringTokenizer st = new StringTokenizer(new String(
+					StringTokenizer st = new StringTokenizer(StringUtils.toString(
 							dateAsBytes, offset, length, "ISO8859_1"), "- ");
 
 					year = Integer.parseInt(st.nextToken());
@@ -299,8 +295,8 @@ public abstract class ResultSetRow {
 		} catch (Exception e) {
 			SQLException sqlEx = SQLError.createSQLException(Messages.getString(
 					"ResultSet.Bad_format_for_Date", new Object[] {
-							new String(dateAsBytes),
-							Constants.integerValueOf(columnIndex + 1) }),
+							StringUtils.toString(dateAsBytes),
+							Integer.valueOf(columnIndex + 1) }),
 					SQLError.SQL_STATE_ILLEGAL_ARGUMENT, this.exceptionInterceptor); //$NON-NLS-1$
 			sqlEx.initCause(e);
 			
@@ -309,7 +305,7 @@ public abstract class ResultSetRow {
 	}
 
 	public abstract java.sql.Date getDateFast(int columnIndex,
-			ConnectionImpl conn, ResultSetImpl rs, Calendar targetCalendar) throws SQLException;
+			MySQLConnection conn, ResultSetImpl rs, Calendar targetCalendar) throws SQLException;
 
 	/**
 	 * Returns the value at the given column (index starts at 0) as an int. *
@@ -336,7 +332,7 @@ public abstract class ResultSetRow {
 	public abstract long getLong(int columnIndex) throws SQLException;
 
 	protected java.sql.Date getNativeDate(int columnIndex, byte[] bits,
-			int offset, int length, ConnectionImpl conn, ResultSetImpl rs, Calendar cal)
+			int offset, int length, MySQLConnection conn, ResultSetImpl rs, Calendar cal)
 			throws SQLException {
 
 		int year = 0;
@@ -375,12 +371,12 @@ public abstract class ResultSetRow {
 				month, day);
 	}
 
-	public abstract Date getNativeDate(int columnIndex, ConnectionImpl conn,
+	public abstract Date getNativeDate(int columnIndex, MySQLConnection conn,
 			ResultSetImpl rs, Calendar cal) throws SQLException;
 
 	protected Object getNativeDateTimeValue(int columnIndex, byte[] bits,
 			int offset, int length, Calendar targetCalendar, int jdbcType,
-			int mysqlType, TimeZone tz, boolean rollForward, ConnectionImpl conn,
+			int mysqlType, TimeZone tz, boolean rollForward, MySQLConnection conn,
 			ResultSetImpl rs) throws SQLException {
 
 		int year = 0;
@@ -559,7 +555,7 @@ public abstract class ResultSetRow {
 
 	public abstract Object getNativeDateTimeValue(int columnIndex,
 			Calendar targetCalendar, int jdbcType, int mysqlType,
-			TimeZone tz, boolean rollForward, ConnectionImpl conn, ResultSetImpl rs)
+			TimeZone tz, boolean rollForward, MySQLConnection conn, ResultSetImpl rs)
 			throws SQLException;
 
 	protected double getNativeDouble(byte[] bits, int offset) {
@@ -625,7 +621,7 @@ public abstract class ResultSetRow {
 
 	protected Time getNativeTime(int columnIndex, byte[] bits, int offset,
 			int length, Calendar targetCalendar, TimeZone tz,
-			boolean rollForward, ConnectionImpl conn, ResultSetImpl rs)
+			boolean rollForward, MySQLConnection conn, ResultSetImpl rs)
 			throws SQLException {
 
 		int hour = 0;
@@ -660,11 +656,11 @@ public abstract class ResultSetRow {
 
 	public abstract Time getNativeTime(int columnIndex,
 			Calendar targetCalendar, TimeZone tz, boolean rollForward,
-			ConnectionImpl conn, ResultSetImpl rs) throws SQLException;
+			MySQLConnection conn, ResultSetImpl rs) throws SQLException;
 
 	protected Timestamp getNativeTimestamp(byte[] bits, int offset, int length,
 			Calendar targetCalendar, TimeZone tz, boolean rollForward,
-			ConnectionImpl conn, ResultSetImpl rs) throws SQLException {
+			MySQLConnection conn, ResultSetImpl rs) throws SQLException {
 		int year = 0;
 		int month = 0;
 		int day = 0;
@@ -735,14 +731,14 @@ public abstract class ResultSetRow {
 
 	public abstract Timestamp getNativeTimestamp(int columnIndex,
 			Calendar targetCalendar, TimeZone tz, boolean rollForward,
-			ConnectionImpl conn, ResultSetImpl rs) throws SQLException;
+			MySQLConnection conn, ResultSetImpl rs) throws SQLException;
 
 	public abstract Reader getReader(int columnIndex) throws SQLException;
 
 	/**
 	 * Returns the value at the given column (index starts at 0) as a
 	 * java.lang.String with the requested encoding, using the given
-	 * ConnectionImpl to find character converters.
+	 * MySQLConnection to find character converters.
 	 * 
 	 * @param index
 	 *            of the column value (starting at 0) to return.
@@ -758,7 +754,7 @@ public abstract class ResultSetRow {
 	 *             if an error occurs while retrieving the value.
 	 */
 	public abstract String getString(int index, String encoding,
-			ConnectionImpl conn) throws SQLException;
+			MySQLConnection conn) throws SQLException;
 
 	/**
 	 * Convenience method for turning a byte[] into a string with the given
@@ -767,7 +763,7 @@ public abstract class ResultSetRow {
 	 * @param encoding
 	 *            the Java encoding name for the byte[] -> char conversion
 	 * @param conn
-	 *            the ConnectionImpl that created the result set
+	 *            the MySQLConnection that created the result set
 	 * @param value
 	 *            the String value as a series of bytes, encoded using
 	 *            "encoding"
@@ -781,14 +777,14 @@ public abstract class ResultSetRow {
 	 * @throws SQLException
 	 *             if an error occurs
 	 */
-	protected String getString(String encoding, ConnectionImpl conn,
+	protected String getString(String encoding, MySQLConnection conn,
 			byte[] value, int offset, int length) throws SQLException {
 		String stringVal = null;
 
 		if ((conn != null) && conn.getUseUnicode()) {
 			try {
 				if (encoding == null) {
-					stringVal = new String(value);
+					stringVal = StringUtils.toString(value);
 				} else {
 					SingleByteCharsetConverter converter = conn
 							.getCharsetConverter(encoding);
@@ -796,7 +792,7 @@ public abstract class ResultSetRow {
 					if (converter != null) {
 						stringVal = converter.toString(value, offset, length);
 					} else {
-						stringVal = new String(value, offset, length, encoding);
+						stringVal = StringUtils.toString(value, offset, length, encoding);
 					}
 				}
 			} catch (java.io.UnsupportedEncodingException E) {
@@ -815,7 +811,7 @@ public abstract class ResultSetRow {
 
 	protected Time getTimeFast(int columnIndex, byte[] timeAsBytes, int offset,
 			int length, Calendar targetCalendar, TimeZone tz,
-			boolean rollForward, ConnectionImpl conn, ResultSetImpl rs)
+			boolean rollForward, MySQLConnection conn, ResultSetImpl rs)
 			throws SQLException {
 
 		int hr = 0;
@@ -860,7 +856,7 @@ public abstract class ResultSetRow {
 				} else if (ConnectionPropertiesImpl.ZERO_DATETIME_BEHAVIOR_EXCEPTION
 						.equals(conn.getZeroDateTimeBehavior())) {
 					throw SQLError.createSQLException("Value '"
-							+ new String(timeAsBytes)
+							+ StringUtils.toString(timeAsBytes)
 							+ "' can not be represented as java.sql.Time",
 							SQLError.SQL_STATE_ILLEGAL_ARGUMENT, this.exceptionInterceptor);
 				}
@@ -952,7 +948,7 @@ public abstract class ResultSetRow {
 				if ((length != 5) && (length != 8)) {
 					throw SQLError.createSQLException(Messages
 							.getString("ResultSet.Bad_format_for_Time____267") //$NON-NLS-1$
-							+ new String(timeAsBytes)
+							+ StringUtils.toString(timeAsBytes)
 							+ Messages.getString("ResultSet.___in_column__268")
 							+ (columnIndex + 1),
 							SQLError.SQL_STATE_ILLEGAL_ARGUMENT, this.exceptionInterceptor);
@@ -976,7 +972,7 @@ public abstract class ResultSetRow {
 								min, sec), conn.getServerTimezoneTZ(), tz,
 						rollForward);
 			}
-		} catch (Exception ex) {
+		} catch (RuntimeException ex) {
 			SQLException sqlEx = SQLError.createSQLException(ex.toString(),
 					SQLError.SQL_STATE_ILLEGAL_ARGUMENT, this.exceptionInterceptor);
 			sqlEx.initCause(ex);
@@ -986,13 +982,13 @@ public abstract class ResultSetRow {
 	}
 
 	public abstract Time getTimeFast(int columnIndex, Calendar targetCalendar,
-			TimeZone tz, boolean rollForward, ConnectionImpl conn,
+			TimeZone tz, boolean rollForward, MySQLConnection conn,
 			ResultSetImpl rs) throws SQLException;
 
 	protected Timestamp getTimestampFast(int columnIndex,
 			byte[] timestampAsBytes, int offset, int length,
 			Calendar targetCalendar, TimeZone tz, boolean rollForward,
-			ConnectionImpl conn, ResultSetImpl rs) throws SQLException {
+			MySQLConnection conn, ResultSetImpl rs) throws SQLException {
 
 		try {
 			Calendar sessionCalendar = conn.getUseJDBCCompliantTimezoneShift() ? conn
@@ -1037,7 +1033,7 @@ public abstract class ResultSetRow {
 						throw SQLError
 								.createSQLException(
 										"Value '"
-												+ timestampAsBytes
+												+ StringUtils.toString(timestampAsBytes)
 												+ "' can not be represented as java.sql.Timestamp",
 										SQLError.SQL_STATE_ILLEGAL_ARGUMENT, this.exceptionInterceptor);
 					}
@@ -1115,10 +1111,10 @@ public abstract class ResultSetRow {
 							if (decimalIndex != -1) {
 								if ((decimalIndex + 2) <= length) {
 									nanos = StringUtils.getInt(
-											timestampAsBytes, decimalIndex + 1,
+											timestampAsBytes, offset + decimalIndex + 1,
 											offset + length);
 									
-									int numDigits = (offset + length) - (decimalIndex + 1);
+									int numDigits = (length) - (decimalIndex + 1);
 									
 									if (numDigits < 9) {
 										int factor = (int)(Math.pow(10, 9 - numDigits));
@@ -1312,7 +1308,7 @@ public abstract class ResultSetRow {
 					default:
 						throw new java.sql.SQLException(
 								"Bad format for Timestamp '"
-										+ new String(timestampAsBytes)
+										+ StringUtils.toString(timestampAsBytes)
 										+ "' in column " + (columnIndex + 1)
 										+ ".",
 								SQLError.SQL_STATE_ILLEGAL_ARGUMENT);
@@ -1335,7 +1331,7 @@ public abstract class ResultSetRow {
 									rollForward);
 				}
 			}
-		} catch (Exception e) {
+		} catch (RuntimeException e) {
 			SQLException sqlEx = SQLError.createSQLException("Cannot convert value '"
 					+ getString(columnIndex, "ISO8859_1", conn)
 					+ "' from column " + (columnIndex + 1) + " to TIMESTAMP.",
@@ -1348,7 +1344,7 @@ public abstract class ResultSetRow {
 
 	public abstract Timestamp getTimestampFast(int columnIndex,
 			Calendar targetCalendar, TimeZone tz, boolean rollForward,
-			ConnectionImpl conn, ResultSetImpl rs) throws SQLException;
+			MySQLConnection conn, ResultSetImpl rs) throws SQLException;
 
 	/**
 	 * Could the column value at the given index (which starts at 0) be

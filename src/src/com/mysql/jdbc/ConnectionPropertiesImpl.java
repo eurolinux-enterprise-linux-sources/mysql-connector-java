@@ -1,29 +1,25 @@
 /*
- Copyright  2002-2007 MySQL AB, 2008 Sun Microsystems
- All rights reserved. Use is subject to license terms.
+  Copyright (c) 2002, 2011, Oracle and/or its affiliates. All rights reserved.
 
-  The MySQL Connector/J is licensed under the terms of the GPL,
-  like most MySQL Connectors. There are special exceptions to the
-  terms and conditions of the GPL as it is applied to this software,
-  see the FLOSS License Exception available on mysql.com.
+  The MySQL Connector/J is licensed under the terms of the GPLv2
+  <http://www.gnu.org/licenses/old-licenses/gpl-2.0.html>, like most MySQL Connectors.
+  There are special exceptions to the terms and conditions of the GPLv2 as it is applied to
+  this software, see the FLOSS License Exception
+  <http://www.mysql.com/about/legal/licensing/foss-exception.html>.
 
-  This program is free software; you can redistribute it and/or
-  modify it under the terms of the GNU General Public License as
-  published by the Free Software Foundation; version 2 of the
-  License.
+  This program is free software; you can redistribute it and/or modify it under the terms
+  of the GNU General Public License as published by the Free Software Foundation; version 2
+  of the License.
 
-  This program is distributed in the hope that it will be useful,  
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
+  This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+  without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  See the GNU General Public License for more details.
 
-  You should have received a copy of the GNU General Public License
-  along with this program; if not, write to the Free Software
-  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
-  02110-1301 USA
-
+  You should have received a copy of the GNU General Public License along with this
+  program; if not, write to the Free Software Foundation, Inc., 51 Franklin St, Fifth
+  Floor, Boston, MA 02110-1301  USA
+ 
  */
-
 package com.mysql.jdbc;
 
 import java.io.Serializable;
@@ -335,7 +331,7 @@ public class ConnectionPropertiesImpl implements Serializable, ConnectionPropert
 				int defaultValueToSet, int lowerBoundToSet,
 				int upperBoundToSet, String descriptionToSet,
 				String sinceVersionToSet, String category, int orderInCategory) {
-			super(propertyNameToSet, new Integer(defaultValueToSet), null,
+			super(propertyNameToSet, Integer.valueOf(defaultValueToSet), null,
 					lowerBoundToSet, upperBoundToSet, descriptionToSet,
 					sinceVersionToSet, category, orderInCategory);
 		}
@@ -407,7 +403,7 @@ public class ConnectionPropertiesImpl implements Serializable, ConnectionPropert
 					 * the value '" + extractedValue + "' exceeds this range.",
 					 * SQLError.SQL_STATE_ILLEGAL_ARGUMENT); } }
 					 */
-					this.valueAsObject = new Integer(intValue * multiplier);
+					this.valueAsObject = Integer.valueOf(intValue * multiplier);
 				} catch (NumberFormatException nfe) {
 					throw SQLError.createSQLException("The connection property '" //$NON-NLS-1$
 							+ getPropertyName()
@@ -429,7 +425,7 @@ public class ConnectionPropertiesImpl implements Serializable, ConnectionPropert
 		}
 
 		void setValue(int valueFlag) {
-			this.valueAsObject = new Integer(valueFlag);
+			this.valueAsObject = Integer.valueOf(valueFlag);
 		}
 	}
 	
@@ -441,7 +437,7 @@ public class ConnectionPropertiesImpl implements Serializable, ConnectionPropert
 				long defaultValueToSet, long lowerBoundToSet,
 				long upperBoundToSet, String descriptionToSet,
 				String sinceVersionToSet, String category, int orderInCategory) {
-			super(propertyNameToSet, new Long(defaultValueToSet), null,
+			super(propertyNameToSet, Long.valueOf(defaultValueToSet), null,
 					(int)lowerBoundToSet, (int)upperBoundToSet, descriptionToSet,
 					sinceVersionToSet, category, orderInCategory);
 		}
@@ -457,7 +453,7 @@ public class ConnectionPropertiesImpl implements Serializable, ConnectionPropert
 		}
 		
 		void setValue(long value) {
-			this.valueAsObject = new Long(value);
+			this.valueAsObject = Long.valueOf(value);
 		}
 		
 		long getValueAsLong() {
@@ -470,7 +466,7 @@ public class ConnectionPropertiesImpl implements Serializable, ConnectionPropert
 					// Parse decimals, too
 					long longValue = Double.valueOf(extractedValue).longValue();
 
-					this.valueAsObject = new Long(longValue);
+					this.valueAsObject = Long.valueOf(longValue);
 				} catch (NumberFormatException nfe) {
 					throw SQLError.createSQLException("The connection property '" //$NON-NLS-1$
 							+ getPropertyName()
@@ -982,8 +978,20 @@ public class ConnectionPropertiesImpl implements Serializable, ConnectionPropert
 	private BooleanConnectionProperty includeInnodbStatusInDeadlockExceptions = new BooleanConnectionProperty(
 			"includeInnodbStatusInDeadlockExceptions",
 			false,
-			"Include the output of \"SHOW ENGINE INNODB STATUS\" in exception messages when deadlock exceptions are detected?",
+			Messages.getString("ConnectionProperties.includeInnodbStatusInDeadlockExceptions"),
 			"5.0.7", DEBUGING_PROFILING_CATEGORY, Integer.MIN_VALUE);
+	
+	private BooleanConnectionProperty includeThreadDumpInDeadlockExceptions = new BooleanConnectionProperty(
+			"includeThreadDumpInDeadlockExceptions",
+			false,
+			Messages.getString("ConnectionProperties.includeThreadDumpInDeadlockExceptions"),
+			"5.1.15", DEBUGING_PROFILING_CATEGORY, Integer.MIN_VALUE);
+	
+	private BooleanConnectionProperty includeThreadNamesAsStatementComment = new BooleanConnectionProperty(
+			"includeThreadNamesAsStatementComment",
+			false,
+			Messages.getString("ConnectionProperties.includeThreadNamesAsStatementComment"),
+			"5.1.15", DEBUGING_PROFILING_CATEGORY, Integer.MIN_VALUE);
 	
 	private BooleanConnectionProperty ignoreNonTxTables = new BooleanConnectionProperty(
 			"ignoreNonTxTables", //$NON-NLS-1$
@@ -1019,7 +1027,7 @@ public class ConnectionPropertiesImpl implements Serializable, ConnectionPropert
 	private StringConnectionProperty loadBalanceStrategy = new StringConnectionProperty(
 			"loadBalanceStrategy", //$NON-NLS-1$
 			"random", //$NON-NLS-1$
-			new String[] {"random", "bestResponseTime"}, //$NON-NLS-1$ //$NON-NLS-2$
+			null, //$NON-NLS-1$ //$NON-NLS-2$
 			Messages.getString("ConnectionProperties.loadBalanceStrategy"), //$NON-NLS-1$
 			"5.0.6", PERFORMANCE_CATEGORY, Integer.MIN_VALUE); //$NON-NLS-1$
 	
@@ -1028,6 +1036,62 @@ public class ConnectionPropertiesImpl implements Serializable, ConnectionPropert
 			0, Integer.MAX_VALUE,
 			Messages.getString("ConnectionProperties.loadBalanceBlacklistTimeout"), //$NON-NLS-1$
 			"5.1.0", MISC_CATEGORY, Integer.MIN_VALUE); //$NON-NLS-1$
+	
+	private IntegerConnectionProperty loadBalancePingTimeout = new IntegerConnectionProperty(
+			"loadBalancePingTimeout", 0, //$NON-NLS-1$
+			0, Integer.MAX_VALUE,
+			Messages.getString("ConnectionProperties.loadBalancePingTimeout"), //$NON-NLS-1$
+			"5.1.13", MISC_CATEGORY, Integer.MIN_VALUE); //$NON-NLS-1$
+	
+	private BooleanConnectionProperty loadBalanceValidateConnectionOnSwapServer = new BooleanConnectionProperty(
+			"loadBalanceValidateConnectionOnSwapServer",
+			false,
+			Messages.getString("ConnectionProperties.loadBalanceValidateConnectionOnSwapServer"), //$NON-NLS-1$
+			"5.1.13", MISC_CATEGORY, Integer.MIN_VALUE); //$NON-NLS-1$
+	
+	private StringConnectionProperty loadBalanceConnectionGroup = new StringConnectionProperty(
+			"loadBalanceConnectionGroup", //$NON-NLS-1$
+			null, //$NON-NLS-1$ //$NON-NLS-2$
+			Messages.getString("ConnectionProperties.loadBalanceConnectionGroup"), //$NON-NLS-1$
+			"5.1.13", MISC_CATEGORY, Integer.MIN_VALUE); //$NON-NLS-1$
+	
+	private StringConnectionProperty loadBalanceExceptionChecker = new StringConnectionProperty(
+			"loadBalanceExceptionChecker", //$NON-NLS-1$
+			"com.mysql.jdbc.StandardLoadBalanceExceptionChecker", //$NON-NLS-1$
+			null, //$NON-NLS-1$ //$NON-NLS-2$
+			Messages.getString("ConnectionProperties.loadBalanceExceptionChecker"), //$NON-NLS-1$
+			"5.1.13", MISC_CATEGORY, Integer.MIN_VALUE); //$NON-NLS-1$
+	
+	private StringConnectionProperty loadBalanceSQLStateFailover = new StringConnectionProperty(
+			"loadBalanceSQLStateFailover", //$NON-NLS-1$
+			null, //$NON-NLS-1$ //$NON-NLS-2$
+			Messages.getString("ConnectionProperties.loadBalanceSQLStateFailover"), //$NON-NLS-1$
+			"5.1.13", MISC_CATEGORY, Integer.MIN_VALUE); //$NON-NLS-1$
+	
+	private StringConnectionProperty loadBalanceSQLExceptionSubclassFailover = new StringConnectionProperty(
+			"loadBalanceSQLExceptionSubclassFailover", //$NON-NLS-1$
+			null, //$NON-NLS-1$ //$NON-NLS-2$
+			Messages.getString("ConnectionProperties.loadBalanceSQLExceptionSubclassFailover"), //$NON-NLS-1$
+			"5.1.13", MISC_CATEGORY, Integer.MIN_VALUE); //$NON-NLS-1$
+	
+	private BooleanConnectionProperty loadBalanceEnableJMX = new BooleanConnectionProperty(
+			"loadBalanceEnableJMX", //$NON-NLS-1$
+			false,
+			Messages.getString("ConnectionProperties.loadBalanceEnableJMX"), //$NON-NLS-1$
+			"5.1.13", MISC_CATEGORY, Integer.MAX_VALUE); //$NON-NLS-1$
+	
+	private StringConnectionProperty loadBalanceAutoCommitStatementRegex = new StringConnectionProperty(
+			"loadBalanceAutoCommitStatementRegex", //$NON-NLS-1$
+			null, //$NON-NLS-1$ //$NON-NLS-2$
+			Messages.getString("ConnectionProperties.loadBalanceAutoCommitStatementRegex"), //$NON-NLS-1$
+			"5.1.15", MISC_CATEGORY, Integer.MIN_VALUE); //$NON-NLS-1$
+	
+	private IntegerConnectionProperty loadBalanceAutoCommitStatementThreshold = new IntegerConnectionProperty(
+			"loadBalanceAutoCommitStatementThreshold", 0, //$NON-NLS-1$
+			0, Integer.MAX_VALUE,
+			Messages.getString("ConnectionProperties.loadBalanceAutoCommitStatementThreshold"), //$NON-NLS-1$
+			"5.1.15", MISC_CATEGORY, Integer.MIN_VALUE); //$NON-NLS-1$
+
 	
 	private StringConnectionProperty localSocketAddress = new StringConnectionProperty("localSocketAddress", //$NON-NLS-1$
 			null, Messages.getString("ConnectionProperties.localSocketAddress"), //$NON-NLS-1$
@@ -1675,7 +1739,7 @@ public class ConnectionPropertiesImpl implements Serializable, ConnectionPropert
 			SECURITY_CATEGORY, 8);
 	
 	private StringConnectionProperty clientCertificateKeyStoreType = new StringConnectionProperty(
-			"clientCertificateKeyStoreType", null, //$NON-NLS-1$
+			"clientCertificateKeyStoreType", "JKS", //$NON-NLS-1$
 			Messages.getString("ConnectionProperties.clientCertificateKeyStoreType"), "5.1.0", //$NON-NLS-1$ //$NON-NLS-2$
 			SECURITY_CATEGORY, 6);
 	
@@ -1685,7 +1749,7 @@ public class ConnectionPropertiesImpl implements Serializable, ConnectionPropert
 			SECURITY_CATEGORY, 7);
 	
 	private StringConnectionProperty trustCertificateKeyStoreType = new StringConnectionProperty(
-			"trustCertificateKeyStoreType", null, //$NON-NLS-1$
+			"trustCertificateKeyStoreType", "JKS", //$NON-NLS-1$
 			Messages.getString("ConnectionProperties.trustCertificateKeyStoreType"), "5.1.0", //$NON-NLS-1$ //$NON-NLS-2$
 			SECURITY_CATEGORY, 9);
 	
@@ -1816,7 +1880,7 @@ public class ConnectionPropertiesImpl implements Serializable, ConnectionPropert
 		TreeMap userMap = new TreeMap();
 		userMap.put(userProp.getPropertyName(), userProp);
 		
-		connectionSortMaps[0].put(new Integer(userProp.getOrder()), userMap);
+		connectionSortMaps[0].put(Integer.valueOf(userProp.getOrder()), userMap);
 		
 		TreeMap passwordMap = new TreeMap();
 		passwordMap.put(passwordProp.getPropertyName(), passwordProp);
@@ -1837,7 +1901,7 @@ public class ConnectionPropertiesImpl implements Serializable, ConnectionPropert
 				if (orderInCategory == Integer.MIN_VALUE) {
 					sortMaps[1].put(propToGet.getPropertyName(), propToGet);
 				} else {
-					Integer order = new Integer(orderInCategory);
+					Integer order = Integer.valueOf(orderInCategory);
 					
 					Map orderMap = (Map)sortMaps[0].get(order);
 					
@@ -2398,7 +2462,7 @@ public class ConnectionPropertiesImpl implements Serializable, ConnectionPropert
 		return this.requireSSL.getValueAsBoolean();
 	}
 
-	protected boolean getRetainStatementAfterResultSetClose() {
+	public boolean getRetainStatementAfterResultSetClose() {
 		return this.retainStatementAfterResultSetClose.getValueAsBoolean();
 	}
 
@@ -2731,7 +2795,7 @@ public class ConnectionPropertiesImpl implements Serializable, ConnectionPropert
 		if (this.getMaxRows() == 0) {
 			// adjust so that it will become MysqlDefs.MAX_ROWS
 			// in execSQL()
-			this.maxRows.setValueAsObject(Constants.integerValueOf(-1));
+			this.maxRows.setValueAsObject(Integer.valueOf(-1));
 		}
 
 		//
@@ -2744,7 +2808,7 @@ public class ConnectionPropertiesImpl implements Serializable, ConnectionPropert
 			// can't be used
 			try {
 				String testString = "abc"; //$NON-NLS-1$
-				testString.getBytes(testEncoding);
+				StringUtils.getBytes(testString, testEncoding);
 			} catch (UnsupportedEncodingException UE) {
 				throw SQLError.createSQLException(Messages.getString(
 						"ConnectionProperties.unsupportedCharacterEncoding", 
@@ -4436,6 +4500,14 @@ public class ConnectionPropertiesImpl implements Serializable, ConnectionPropert
 	public void setLoadBalanceBlacklistTimeout(int loadBalanceBlacklistTimeout) {
 		this.loadBalanceBlacklistTimeout.setValue(loadBalanceBlacklistTimeout);
 	}
+
+	public int getLoadBalancePingTimeout() {
+		return loadBalancePingTimeout.getValueAsInt();
+	}
+
+	public void setLoadBalancePingTimeout(int loadBalancePingTimeout) {
+		this.loadBalancePingTimeout.setValue(loadBalancePingTimeout);
+	}
 	
 	public void setRetriesAllDown(int retriesAllDown) {
 		this.retriesAllDown.setValue(retriesAllDown);
@@ -4484,4 +4556,87 @@ public class ConnectionPropertiesImpl implements Serializable, ConnectionPropert
 	public void setQueryTimeoutKillsConnection(boolean queryTimeoutKillsConnection) {
 		this.queryTimeoutKillsConnection.setValue(queryTimeoutKillsConnection);
 	}
+
+	public boolean getLoadBalanceValidateConnectionOnSwapServer() {
+		return this.loadBalanceValidateConnectionOnSwapServer.getValueAsBoolean();
+	}
+
+	public void setLoadBalanceValidateConnectionOnSwapServer(
+			boolean loadBalanceValidateConnectionOnSwapServer) {
+		this.loadBalanceValidateConnectionOnSwapServer.setValue(loadBalanceValidateConnectionOnSwapServer);
+		
+	}
+	
+	public String getLoadBalanceConnectionGroup() {
+		return loadBalanceConnectionGroup.getValueAsString();
+	}
+
+	public void setLoadBalanceConnectionGroup(String loadBalanceConnectionGroup) {
+		this.loadBalanceConnectionGroup.setValue(loadBalanceConnectionGroup);
+	}
+
+	public String getLoadBalanceExceptionChecker() {
+		return loadBalanceExceptionChecker.getValueAsString();
+	}
+
+	public void setLoadBalanceExceptionChecker(String loadBalanceExceptionChecker) {
+		this.loadBalanceExceptionChecker.setValue(loadBalanceExceptionChecker);
+	}
+
+	public String getLoadBalanceSQLStateFailover() {
+		return loadBalanceSQLStateFailover.getValueAsString();
+	}
+
+	public void setLoadBalanceSQLStateFailover(String loadBalanceSQLStateFailover) {
+		this.loadBalanceSQLStateFailover.setValue(loadBalanceSQLStateFailover);
+	}
+
+	public String getLoadBalanceSQLExceptionSubclassFailover() {
+		return loadBalanceSQLExceptionSubclassFailover.getValueAsString();
+	}
+
+	public void setLoadBalanceSQLExceptionSubclassFailover(String loadBalanceSQLExceptionSubclassFailover) {
+		this.loadBalanceSQLExceptionSubclassFailover.setValue(loadBalanceSQLExceptionSubclassFailover);
+	}
+
+	public boolean getLoadBalanceEnableJMX() {
+		return loadBalanceEnableJMX.getValueAsBoolean();
+	}
+
+	public void setLoadBalanceEnableJMX(boolean loadBalanceEnableJMX) {
+		this.loadBalanceEnableJMX.setValue(loadBalanceEnableJMX);
+	}
+
+	public void setLoadBalanceAutoCommitStatementThreshold(int loadBalanceAutoCommitStatementThreshold) {
+		this.loadBalanceAutoCommitStatementThreshold.setValue(loadBalanceAutoCommitStatementThreshold);
+	}
+
+	public int getLoadBalanceAutoCommitStatementThreshold() {
+		return loadBalanceAutoCommitStatementThreshold.getValueAsInt();
+	}
+
+	public void setLoadBalanceAutoCommitStatementRegex(String loadBalanceAutoCommitStatementRegex) {
+		this.loadBalanceAutoCommitStatementRegex.setValue(loadBalanceAutoCommitStatementRegex);
+	}
+
+	public String getLoadBalanceAutoCommitStatementRegex() {
+		return loadBalanceAutoCommitStatementRegex.getValueAsString();
+	}
+
+	public void setIncludeThreadDumpInDeadlockExceptions(boolean flag) {
+		this.includeThreadDumpInDeadlockExceptions.setValue(flag);
+	}
+
+	public boolean getIncludeThreadDumpInDeadlockExceptions() {
+		return includeThreadDumpInDeadlockExceptions.getValueAsBoolean();
+	}
+
+	public void setIncludeThreadNamesAsStatementComment(boolean flag) {
+		this.includeThreadNamesAsStatementComment.setValue(flag);
+	}
+
+	public boolean getIncludeThreadNamesAsStatementComment() {
+		return includeThreadNamesAsStatementComment.getValueAsBoolean();
+	}
+
 }

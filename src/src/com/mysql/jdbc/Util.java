@@ -1,26 +1,24 @@
 /*
- Copyright  2002-2007 MySQL AB, 2008 Sun Microsystems
- All rights reserved. Use is subject to license terms.
+ Copyright (c) 2002, 2011, Oracle and/or its affiliates. All rights reserved.
+ 
 
-  The MySQL Connector/J is licensed under the terms of the GPL,
-  like most MySQL Connectors. There are special exceptions to the
-  terms and conditions of the GPL as it is applied to this software,
-  see the FLOSS License Exception available on mysql.com.
+  The MySQL Connector/J is licensed under the terms of the GPLv2
+  <http://www.gnu.org/licenses/old-licenses/gpl-2.0.html>, like most MySQL Connectors.
+  There are special exceptions to the terms and conditions of the GPLv2 as it is applied to
+  this software, see the FLOSS License Exception
+  <http://www.mysql.com/about/legal/licensing/foss-exception.html>.
 
-  This program is free software; you can redistribute it and/or
-  modify it under the terms of the GNU General Public License as
-  published by the Free Software Foundation; version 2 of the
-  License.
+  This program is free software; you can redistribute it and/or modify it under the terms
+  of the GNU General Public License as published by the Free Software Foundation; version 2
+  of the License.
 
-  This program is distributed in the hope that it will be useful,  
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
+  This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+  without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  See the GNU General Public License for more details.
 
-  You should have received a copy of the GNU General Public License
-  along with this program; if not, write to the Free Software
-  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
-  02110-1301 USA
+  You should have received a copy of the GNU General Public License along with this
+  program; if not, write to the Free Software Foundation, Inc., 51 Franklin St, Fifth
+  Floor, Boston, MA 02110-1301  USA
 
 
 
@@ -50,16 +48,20 @@ import java.util.TimeZone;
  * @author Mark Matthews
  */
 public class Util {
-	protected static Method systemNanoTimeMethod;
+	protected final static Method systemNanoTimeMethod;
 
 	static {
+		Method aMethod;
+		
 		try {
-			systemNanoTimeMethod = System.class.getMethod("nanoTime", null);
+			aMethod = System.class.getMethod("nanoTime", (Class[])null);
 		} catch (SecurityException e) {
-			systemNanoTimeMethod = null;
+			aMethod = null;
 		} catch (NoSuchMethodException e) {
-			systemNanoTimeMethod = null;
+			aMethod = null;
 		}
+		
+		systemNanoTimeMethod = aMethod;
 	}
 
 	public static boolean nanoTimeAvailable() {
@@ -330,7 +332,7 @@ public class Util {
 				to[i] ^= extra;
 			}
 
-			val = new String(to);
+			val = StringUtils.toString(to);
 		}
 
 		return val;
@@ -447,7 +449,7 @@ public class Util {
 		try {
 			Class networkInterfaceClass = Class
 					.forName("java.net.NetworkInterface");
-			return networkInterfaceClass.getMethod("getByName", null).invoke(
+			return networkInterfaceClass.getMethod("getByName", (Class[])null).invoke(
 					networkInterfaceClass, new Object[] { hostname }) != null;
 		} catch (Throwable t) {
 			return false;
@@ -477,7 +479,7 @@ public class Util {
 	public static long getCurrentTimeNanosOrMillis() {
 		if (systemNanoTimeMethod != null) {
 			try {
-				return ((Long) systemNanoTimeMethod.invoke(null, null))
+				return ((Long) systemNanoTimeMethod.invoke(null, (Object[])null))
 						.longValue();
 			} catch (IllegalArgumentException e) {
 				// ignore - fall through to currentTimeMillis()
@@ -528,25 +530,25 @@ public class Util {
 			}
 			
 			if (value1 instanceof Byte) {
-				diffMap.put(key, new Byte(
+				diffMap.put(key, Byte.valueOf(
 						(byte) (((Byte) value2).byteValue() - ((Byte) value1)
 								.byteValue())));
 			} else if (value1 instanceof Short) {
-				diffMap.put(key, new Short((short) (((Short) value2)
+				diffMap.put(key, Short.valueOf((short) (((Short) value2)
 						.shortValue() - ((Short) value1).shortValue())));
 			} else if (value1 instanceof Integer) {
-				diffMap.put(key, new Integer(
+				diffMap.put(key, Integer.valueOf(
 						(((Integer) value2).intValue() - ((Integer) value1)
 								.intValue())));
 			} else if (value1 instanceof Long) {
-				diffMap.put(key, new Long(
+				diffMap.put(key, Long.valueOf(
 						(((Long) value2).longValue() - ((Long) value1)
 								.longValue())));
 			} else if (value1 instanceof Float) {
-				diffMap.put(key, new Float(((Float) value2).floatValue()
+				diffMap.put(key, Float.valueOf(((Float) value2).floatValue()
 						- ((Float) value1).floatValue()));
 			} else if (value1 instanceof Double) {
-				diffMap.put(key, new Double(
+				diffMap.put(key, Double.valueOf(
 						(((Double) value2).shortValue() - ((Double) value1)
 								.shortValue())));
 			} else if (value1 instanceof BigDecimal) {

@@ -1,26 +1,24 @@
 /*
- Copyright  2005 MySQL AB, 2008 Sun Microsystems
- All rights reserved. Use is subject to license terms.
+ Copyright (c) 2005, 2011, Oracle and/or its affiliates. All rights reserved.
+ 
 
-  The MySQL Connector/J is licensed under the terms of the GPL,
-  like most MySQL Connectors. There are special exceptions to the
-  terms and conditions of the GPL as it is applied to this software,
-  see the FLOSS License Exception available on mysql.com.
+  The MySQL Connector/J is licensed under the terms of the GPLv2
+  <http://www.gnu.org/licenses/old-licenses/gpl-2.0.html>, like most MySQL Connectors.
+  There are special exceptions to the terms and conditions of the GPLv2 as it is applied to
+  this software, see the FLOSS License Exception
+  <http://www.mysql.com/about/legal/licensing/foss-exception.html>.
 
-  This program is free software; you can redistribute it and/or
-  modify it under the terms of the GNU General Public License as
-  published by the Free Software Foundation; version 2 of the
-  License.
+  This program is free software; you can redistribute it and/or modify it under the terms
+  of the GNU General Public License as published by the Free Software Foundation; version 2
+  of the License.
 
-  This program is distributed in the hope that it will be useful,  
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
+  This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+  without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  See the GNU General Public License for more details.
 
-  You should have received a copy of the GNU General Public License
-  along with this program; if not, write to the Free Software
-  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
-  02110-1301 USA
+  You should have received a copy of the GNU General Public License along with this
+  program; if not, write to the Free Software Foundation, Inc., 51 Franklin St, Fifth
+  Floor, Boston, MA 02110-1301  USA
 
  */
 package com.mysql.jdbc.jdbc2.optional;
@@ -79,12 +77,12 @@ public class MysqlXAConnection extends MysqlPooledConnection implements
 	static {
 		HashMap temp = new HashMap();
 
-		temp.put(Constants.integerValueOf(1397), Constants.integerValueOf(XAException.XAER_NOTA));
-		temp.put(Constants.integerValueOf(1398), Constants.integerValueOf(XAException.XAER_INVAL));
-		temp.put(Constants.integerValueOf(1399), Constants.integerValueOf(XAException.XAER_RMFAIL));
-		temp.put(Constants.integerValueOf(1400), Constants.integerValueOf(XAException.XAER_OUTSIDE));
-		temp.put(Constants.integerValueOf(1401), Constants.integerValueOf(XAException.XAER_RMERR));
-		temp.put(Constants.integerValueOf(1402), Constants.integerValueOf(XAException.XA_RBROLLBACK));
+		temp.put(Integer.valueOf(1397), Integer.valueOf(XAException.XAER_NOTA));
+		temp.put(Integer.valueOf(1398), Integer.valueOf(XAException.XAER_INVAL));
+		temp.put(Integer.valueOf(1399), Integer.valueOf(XAException.XAER_RMFAIL));
+		temp.put(Integer.valueOf(1400), Integer.valueOf(XAException.XAER_OUTSIDE));
+		temp.put(Integer.valueOf(1401), Integer.valueOf(XAException.XAER_RMERR));
+		temp.put(Integer.valueOf(1402), Integer.valueOf(XAException.XA_RBROLLBACK));
 
 		MYSQL_ERROR_CODES_TO_XA_ERROR_CODES = Collections.unmodifiableMap(temp);
 	}
@@ -597,7 +595,7 @@ public class MysqlXAConnection extends MysqlPooledConnection implements
 	protected static XAException mapXAExceptionFromSQLException(SQLException sqlEx) {
 
 		Integer xaCode = (Integer) MYSQL_ERROR_CODES_TO_XA_ERROR_CODES
-				.get(Constants.integerValueOf(sqlEx.getErrorCode()));
+				.get(Integer.valueOf(sqlEx.getErrorCode()));
 
 		if (xaCode != null) {
 			return new MysqlXAException(xaCode.intValue(), sqlEx.getMessage(), null);

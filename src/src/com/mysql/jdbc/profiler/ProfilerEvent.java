@@ -1,26 +1,24 @@
 /*
- Copyright  2002-2007 MySQL AB, 2008 Sun Microsystems
- All rights reserved. Use is subject to license terms.
+ Copyright (c) 2002, 2010, Oracle and/or its affiliates. All rights reserved.
+ 
 
-  The MySQL Connector/J is licensed under the terms of the GPL,
-  like most MySQL Connectors. There are special exceptions to the
-  terms and conditions of the GPL as it is applied to this software,
-  see the FLOSS License Exception available on mysql.com.
+  The MySQL Connector/J is licensed under the terms of the GPLv2
+  <http://www.gnu.org/licenses/old-licenses/gpl-2.0.html>, like most MySQL Connectors.
+  There are special exceptions to the terms and conditions of the GPLv2 as it is applied to
+  this software, see the FLOSS License Exception
+  <http://www.mysql.com/about/legal/licensing/foss-exception.html>.
 
-  This program is free software; you can redistribute it and/or
-  modify it under the terms of the GNU General Public License as
-  published by the Free Software Foundation; version 2 of the
-  License.
+  This program is free software; you can redistribute it and/or modify it under the terms
+  of the GNU General Public License as published by the Free Software Foundation; version 2
+  of the License.
 
-  This program is distributed in the hope that it will be useful,  
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
+  This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+  without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  See the GNU General Public License for more details.
 
-  You should have received a copy of the GNU General Public License
-  along with this program; if not, write to the Free Software
-  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
-  02110-1301 USA
+  You should have received a copy of the GNU General Public License along with this
+  program; if not, write to the Free Software Foundation, Inc., 51 Franklin St, Fifth
+  Floor, Boston, MA 02110-1301  USA
 
  */
 
@@ -28,6 +26,7 @@ package com.mysql.jdbc.profiler;
 
 import java.util.Date;
 
+import com.mysql.jdbc.StringUtils;
 import com.mysql.jdbc.Util;
 
 /**
@@ -301,7 +300,7 @@ public class ProfilerEvent {
 			pos += eventDurationUnits.length;
 		}
 		
-		int eventCreationPointIndex = readInt(buf, pos);
+		readInt(buf, pos);
 		pos += 4;
 		byte[] eventCreationAsBytes = readBytes(buf, pos);
 		pos += 4;
@@ -319,9 +318,9 @@ public class ProfilerEvent {
 
 		return new ProfilerEvent(eventType, "", "", connectionId, statementId,
 				resultSetId, eventCreationTime, eventDuration,
-				new String(eventDurationUnits, "ISO8859_1"),
-				new String(eventCreationAsBytes, "ISO8859_1"), null,
-				new String(message, "ISO8859_1"));
+				StringUtils.toString(eventDurationUnits, "ISO8859_1"),
+				StringUtils.toString(eventCreationAsBytes, "ISO8859_1"), null,
+				StringUtils.toString(message, "ISO8859_1"));
 	}
 
 	/**
@@ -340,8 +339,8 @@ public class ProfilerEvent {
 		getEventCreationPointAsString();
 
 		if (this.eventCreationPointDesc != null) {
-			eventCreationAsBytes = this.eventCreationPointDesc
-					.getBytes("ISO8859_1");
+			eventCreationAsBytes = StringUtils.getBytes(
+					this.eventCreationPointDesc, "ISO8859_1");
 			len += (4 + eventCreationAsBytes.length);
 		} else {
 			len += 4;
@@ -350,7 +349,7 @@ public class ProfilerEvent {
 		byte[] messageAsBytes = null;
 
 		if (messageAsBytes != null) {
-			messageAsBytes = this.message.getBytes("ISO8859_1");
+			messageAsBytes = StringUtils.getBytes(this.message, "ISO8859_1");
 			len += (4 + messageAsBytes.length);
 		} else {
 			len += 4;
@@ -359,10 +358,11 @@ public class ProfilerEvent {
 		byte[] durationUnitsAsBytes = null;
 		
 		if (durationUnits != null) {
-			durationUnitsAsBytes = this.durationUnits.getBytes("ISO8859_1");
+			durationUnitsAsBytes = StringUtils.getBytes(this.durationUnits, "ISO8859_1");
 			len += (4 + durationUnitsAsBytes.length);
 		} else {
 			len += 4;
+			durationUnitsAsBytes = StringUtils.getBytes("", "ISO8859_1");
 		}
 
 		byte[] buf = new byte[len];

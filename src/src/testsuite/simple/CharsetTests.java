@@ -1,6 +1,5 @@
 /*
-    Copyright  2005 MySQL AB, 2008 Sun Microsystems
- All rights reserved. Use is subject to license terms.
+    Copyright (c) 2005, 2010, Oracle and/or its affiliates. All rights reserved.
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of version 2 of the GNU General Public License as 
@@ -23,6 +22,7 @@
 
 package testsuite.simple;
 
+import java.io.UnsupportedEncodingException;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -54,6 +54,12 @@ public class CharsetTests extends BaseTestCase {
 					return;
 				}
 			}
+			
+			try {
+				"".getBytes("WINDOWS-31J");
+			} catch (UnsupportedEncodingException uee) {
+				return;
+			}
 
 			Properties props = new Properties();
 			props.put("useUnicode", "true");
@@ -64,6 +70,12 @@ public class CharsetTests extends BaseTestCase {
 
 	public void testNECExtendedCharsByEUCJPSolaris() throws Exception {
 		if (!isRunningOnJdk131()) {
+			try {
+				"".getBytes("EUC_JP_Solaris");
+			} catch (UnsupportedEncodingException uee) {
+				return;
+			}
+			
 			if (versionMeetsMinimum(5, 0, 5)) {
 				char necExtendedChar = 0x3231; // 0x878A of WINDOWS-31J, NEC
 				// special(row13).
@@ -77,7 +89,6 @@ public class CharsetTests extends BaseTestCase {
 				Connection conn2 = getConnectionWithProps(props);
 				Statement stmt2 = conn2.createStatement();
 	
-				stmt2.executeUpdate("DROP TABLE IF EXISTS t_eucjpms");
 				createTable("t_eucjpms", "(c1 char(1))"
 						+ " default character set = eucjpms");
 				stmt2.executeUpdate("INSERT INTO t_eucjpms VALUES ('"
@@ -98,7 +109,6 @@ public class CharsetTests extends BaseTestCase {
 				this.rs.next();
 				assertEquals(necExtendedCharString, rs.getString("c1"));
 	
-				stmt2.executeUpdate("DROP TABLE t_eucjpms");
 				this.rs.close();
 				stmt2.close();
 				conn2.close();
@@ -188,6 +198,12 @@ public class CharsetTests extends BaseTestCase {
 
 	public void testInsertCharStatement() throws Exception {
 		if (!isRunningOnJdk131()) {
+			try {
+				"".getBytes("SJIS");
+			} catch (UnsupportedEncodingException uee) {
+				return;
+			}
+			
 			if (versionMeetsMinimum(4, 1, 12)) {
 				Map testDataMap = new HashMap();
 	
@@ -430,7 +446,6 @@ public class CharsetTests extends BaseTestCase {
 		} catch (SQLException sqlEx) {
 			assertNull(sqlEx.getCause());
 		}
-		
 	}
 	
 	private boolean bytesAreSame(byte[] byte1, byte[] byte2) {
